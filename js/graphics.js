@@ -1,20 +1,27 @@
 import { TILE_SIZE, GRID_W, GRID_H, TYPES, ITEMS, BOOST_PADS, HELL_CENTER } from './constants.js';
 import { state } from './state.js';
 
-export function drawCharacterSprite(ctx, x, y, charDef, isCursed = false, dir = {x:0, y:1}) {
-    ctx.save();
-    ctx.translate(x, y);
+// --- PERFORMANCE CACHE ---
+// Wir speichern fertig gemalte Bilder hier, um sie nicht 60x pro Sekunde neu zu berechnen.
+const spriteCache = {};
 
-    let d = 'front'; 
-    if (dir.y < 0) d = 'back';
-    else if (dir.x !== 0) d = 'side';
-    if (dir.x < 0) ctx.scale(-1, 1); 
+function getCachedSprite(charDef, d, isCursed) {
+    // Eindeutiger Schlüssel für den Cache (z.B. "lucifer_front_normal")
+    const key = `${charDef.id}_${d}_${isCursed ? 'cursed' : 'normal'}`;
+    
+    // Wenn das Bild schon existiert, gib es sofort zurück!
+    if (spriteCache[key]) return spriteCache[key];
 
-    // Shadow
-    ctx.fillStyle = 'rgba(0,0,0,0.3)';
-    ctx.beginPath(); ctx.ellipse(0, 16, 12, 5, 0, 0, Math.PI*2); ctx.fill();
+    // Wenn nicht, malen wir es EINMALIG auf eine unsichtbare Leinwand
+    const c = document.createElement('canvas');
+    c.width = 48; 
+    c.height = 48;
+    const ctx = c.getContext('2d');
+    
+    // Verschiebe den Nullpunkt in die Mitte (24, 24), damit die Mal-Befehle funktionieren
+    ctx.translate(24, 24);
 
-    // -- HIGH RES PIXEL ART RENDERER --
+    // --- HIER BEGINNT DER URSPRÜNGLICHE MAL-CODE ---
     if (charDef.id === 'lucifer') {
         const cBase = '#e62020'; const cDark = '#aa0000'; const cLite = '#ff5555'; const cHoof = '#1a0505'; 
         if (d === 'side') {
@@ -158,6 +165,31 @@ export function drawCharacterSprite(ctx, x, y, charDef, isCursed = false, dir = 
     if (isCursed && Math.floor(Date.now()/100)%2===0) {
         ctx.globalCompositeOperation = 'source-atop'; ctx.fillStyle = 'rgba(255, 255, 255, 0.5)'; ctx.fillRect(-25, -35, 50, 60); ctx.globalCompositeOperation = 'source-over';
     }
+    // --- END OF DRAWING CODE ---
+
+    spriteCache[key] = c;
+    return c;
+}
+
+export function drawCharacterSprite(ctx, x, y, charDef, isCursed = false, dir = {x:0, y:1}) {
+    ctx.save();
+    ctx.translate(x, y);
+
+    let d = 'front'; 
+    if (dir.y < 0) d = 'back';
+    else if (dir.x !== 0) d = 'side';
+    
+    if (dir.x < 0) ctx.scale(-1, 1); 
+
+    // Shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    ctx.beginPath(); ctx.ellipse(0, 16, 12, 5, 0, 0, Math.PI*2); ctx.fill();
+
+    // Use Cache
+    const sprite = getCachedSprite(charDef, d, isCursed);
+    // Draw the pre-rendered sprite, centered on the context
+    ctx.drawImage(sprite, -24, -24);
+
     ctx.restore();
 }
 
@@ -186,7 +218,6 @@ export function drawItem(ctx, type, x, y) {
     const cx = x + TILE_SIZE/2; const cy = y + TILE_SIZE/2;
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = '32px sans-serif';
     switch(type) {
-        // HIER SIND DIE REPARIERTEN ZEICHEN (UNICODE ESCAPE SEQUENCES)
         case ITEMS.BOMB_UP: ctx.fillStyle = '#0088ff'; ctx.fillText('\uD83D\uDCA3', cx, cy); break; // Bomb
         case ITEMS.RANGE_UP: ctx.fillStyle = '#ffaa00'; ctx.fillText('\uD83D\uDD25', cx, cy); break; // Fire
         case ITEMS.SPEED_UP: ctx.fillStyle = '#ffff00'; ctx.fillText('\uD83D\uDC5F', cx, cy); break; // Shoe
