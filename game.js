@@ -646,7 +646,7 @@ class Player {
         
         if (this.invincibleTimer > 0) this.invincibleTimer--;
 
-       // --- HIER DEN NEUEN CODE EINFÜGEN ---
+        // --- NEW FIX: SKULL TIMER LOGIC ---
         let currentSpeed = this.speed;
 
         if (this.skullEffect) {
@@ -657,7 +657,7 @@ class Player {
                 this.skullEffect = null;
                 createFloatingText(this.x, this.y, "CURED!", "#00ff00");
             } else {
-                // Aktive Effekte anwenden
+                // Aktive Effekte während der Laufzeit anwenden
                 if (this.skullEffect === 'sickness') {
                     if (Math.random() < 0.05) this.plantBomb();
                 } else if (this.skullEffect === 'speed_rush') {
@@ -667,7 +667,15 @@ class Player {
                 }
             }
         }
-        // -------------------------------------
+        
+        // --- END FIX ---
+
+        const gx = Math.round(this.x / TILE_SIZE);
+        const gy = Math.round(this.y / TILE_SIZE);
+        if (gx >= 0 && gx < GRID_W && gy >= 0 && gy < GRID_H) {
+            if (grid[gy][gx] === TYPES.WATER) {
+                currentSpeed *= 0.5; 
+            }
         }
 
         let dx = 0, dy = 0;
