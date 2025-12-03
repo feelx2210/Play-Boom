@@ -186,12 +186,13 @@ export function drawItem(ctx, type, x, y) {
     const cx = x + TILE_SIZE/2; const cy = y + TILE_SIZE/2;
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = '32px sans-serif';
     switch(type) {
-        case ITEMS.BOMB_UP: ctx.fillStyle = '#0088ff'; ctx.fillText('💣', cx, cy); break;
-        case ITEMS.RANGE_UP: ctx.fillStyle = '#ffaa00'; ctx.fillText('🔥', cx, cy); break;
-        case ITEMS.SPEED_UP: ctx.fillStyle = '#ffff00'; ctx.fillText('👟', cx, cy); break;
-        case ITEMS.NAPALM: ctx.fillStyle = '#ff0000'; ctx.fillText('☢️', cx, cy); break;
-        case ITEMS.ROLLING: ctx.fillStyle = '#ffffff'; ctx.fillText('🎳', cx, cy); break;
-        case ITEMS.SKULL: ctx.fillStyle = '#cccccc'; ctx.fillText('💀', cx, cy); break;
+        // HIER SIND DIE REPARIERTEN ZEICHEN (UNICODE ESCAPE SEQUENCES)
+        case ITEMS.BOMB_UP: ctx.fillStyle = '#0088ff'; ctx.fillText('\uD83D\uDCA3', cx, cy); break; // Bomb
+        case ITEMS.RANGE_UP: ctx.fillStyle = '#ffaa00'; ctx.fillText('\uD83D\uDD25', cx, cy); break; // Fire
+        case ITEMS.SPEED_UP: ctx.fillStyle = '#ffff00'; ctx.fillText('\uD83D\uDC5F', cx, cy); break; // Shoe
+        case ITEMS.NAPALM: ctx.fillStyle = '#ff0000'; ctx.fillText('\u2622\uFE0F', cx, cy); break;   // Radioactive
+        case ITEMS.ROLLING: ctx.fillStyle = '#ffffff'; ctx.fillText('\uD83C\uDFB3', cx, cy); break; // Bowling
+        case ITEMS.SKULL: ctx.fillStyle = '#cccccc'; ctx.fillText('\uD83D\uDC80', cx, cy); break;   // Skull
     }
 }
 
@@ -343,6 +344,4 @@ export function draw(ctx, canvas) {
     });
 
     state.players.slice().sort((a,b) => a.y - b.y).forEach(p => p.draw());
-}
-
 }
