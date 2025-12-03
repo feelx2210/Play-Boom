@@ -344,3 +344,5 @@ export function draw(ctx, canvas) {
 
     state.players.slice().sort((a,b) => a.y - b.y).forEach(p => p.draw());
 }
+
+}
