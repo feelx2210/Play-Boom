@@ -1,4 +1,4 @@
-import { TILE_SIZE, GRID_W, GRID_H, TYPES, ITEMS, LEVELS, CHARACTERS, BOOST_PADS, HELL_CENTER, keyBindings } from './constants.js';
+import { TILE_SIZE, GRID_W, GRID_H, TYPES, ITEMS, LEVELS, CHARACTERS, BOOST_PADS, OIL_PADS, HELL_CENTER, keyBindings } from './constants.js';
 import { state } from './state.js';
 import { createFloatingText, isSolid } from './utils.js';
 import { draw, drawLevelPreview, drawCharacterSprite } from './graphics.js';
@@ -84,6 +84,7 @@ window.startGame = function() {
             else if (state.currentLevel.id === 'jungle' && y === 7 && (x === 3 || x === 7 || x === 11)) row.push(TYPES.BRIDGE);
             else if (state.currentLevel.id === 'jungle' && y === 7) row.push(TYPES.WATER);
             else if (x % 2 === 0 && y % 2 === 0) row.push(TYPES.WALL_HARD);
+            // Boost Pads nur in Hell und Ice (aber nicht auf Öl-Feldern, siehe unten)
             else if ((state.currentLevel.id === 'hell' || state.currentLevel.id === 'ice') && BOOST_PADS.some(p => p.x === x && p.y === y)) row.push(TYPES.EMPTY); 
             else if (Math.random() < 0.7) row.push(TYPES.WALL_SOFT);
             else row.push(TYPES.EMPTY);
@@ -91,9 +92,26 @@ window.startGame = function() {
         }
         state.grid.push(row); state.items.push(itemRow);
     }
+
+    // --- NEU: Ölfelder im HELL Level setzen ---
+    if (state.currentLevel.id === 'hell') {
+        OIL_PADS.forEach(p => {
+            if (p.x > 0 && p.x < GRID_W-1 && p.y > 0 && p.y < GRID_H-1) {
+                state.grid[p.y][p.x] = TYPES.OIL;
+                state.items[p.y][p.x] = ITEMS.NONE; // Kein Item auf Öl
+            }
+        });
+    }
+    // ------------------------------------------
+
     const corners = [{x: 1, y: 1}, {x: 1, y: 2}, {x: 2, y: 1}, {x: GRID_W-2, y: 1}, {x: GRID_W-2, y: 2}, {x: GRID_W-3, y: 1}, {x: 1, y: GRID_H-2}, {x: 1, y: GRID_H-3}, {x: 2, y: GRID_H-2}, {x: GRID_W-2, y: GRID_H-2}, {x: GRID_W-3, y: GRID_H-2}, {x: GRID_W-2, y: GRID_H-3}];
     if (state.currentLevel.id === 'jungle') for(let x=1; x<GRID_W-1; x++) state.items[7][x] = ITEMS.NONE; 
-    corners.forEach(p => state.grid[p.y][p.x] = TYPES.EMPTY);
+    
+    corners.forEach(p => {
+        // Ölfelder nicht überschreiben, falls sie zufällig im Eck wären (unwahrscheinlich bei den coords, aber sicher ist sicher)
+        if (state.grid[p.y][p.x] !== TYPES.OIL) state.grid[p.y][p.x] = TYPES.EMPTY;
+    });
+    
     if (state.currentLevel.hasCentralFire) { state.grid[HELL_CENTER.y][HELL_CENTER.x] = TYPES.EMPTY; state.items[HELL_CENTER.y][HELL_CENTER.x] = ITEMS.NONE; }
 
     distributeItems();
@@ -287,18 +305,32 @@ function explodeBomb(b) {
     }
     
     const isBoostPad = (state.currentLevel.id === 'hell' || state.currentLevel.id === 'ice') && BOOST_PADS.some(p => p.x === b.gx && p.y === b.gy);
-    const range = isBoostPad ? 15 : b.range; 
     
+    // --- NEU: Ölfeld-Check (Max Range) ---
+    let range = isBoostPad ? 15 : b.range; 
+    let isOil = (b.underlyingTile === TYPES.OIL);
+    if (isOil) range = 15; // Maximale Explosion auf Öl
+    // -------------------------------------
+
     let centerNapalm = b.napalm;
     let centerDuration = b.napalm ? 720 : 120; 
+    let centerIsOilFire = false; // Flag für Grafik
+
     if (b.underlyingTile === TYPES.WATER) {
         centerNapalm = false;
         centerDuration = 120;
+    } 
+    // --- NEU: Öl brennt lange und dunkel ---
+    else if (b.underlyingTile === TYPES.OIL) {
+        centerDuration = 1200; // 20 Sekunden
+        centerIsOilFire = true; // Spezialgrafik
     }
+    // ---------------------------------------
 
     destroyItem(b.gx, b.gy); 
     extinguishNapalm(b.gx, b.gy); 
-    createFire(b.gx, b.gy, centerDuration, centerNapalm, 'center');
+    
+    createFire(b.gx, b.gy, centerDuration, centerNapalm, 'center', null, centerIsOilFire);
     
     const dirs = [{x:0, y:-1}, {x:0, y:1}, {x:-1, y:0}, {x:1, y:0}];
     dirs.forEach(d => {
@@ -308,11 +340,19 @@ function explodeBomb(b) {
             const tile = state.grid[ty][tx];
             
             let tileNapalm = b.napalm;
-            let tileDuration = b.napalm ? 720 : 120; 
+            let tileDuration = b.napalm ? 720 : 120;
+            let tileIsOilFire = false;
+
             if (tile === TYPES.WATER) {
                 tileNapalm = false;
                 tileDuration = 120;
             }
+            // --- NEU: Kette trifft auf Ölfeld ---
+            else if (tile === TYPES.OIL) {
+                tileDuration = 1200; // 20 Sekunden
+                tileIsOilFire = true;
+            }
+            // -----------------------------------
 
             let type = (i === range) ? 'end' : 'middle';
 
@@ -321,12 +361,12 @@ function explodeBomb(b) {
                 type = 'end';
                 destroyWall(tx, ty); 
                 extinguishNapalm(tx, ty); 
-                createFire(tx, ty, tileDuration, tileNapalm, type, d); 
+                createFire(tx, ty, tileDuration, tileNapalm, type, d, tileIsOilFire); 
                 break; 
             } else { 
                 destroyItem(tx, ty); 
                 extinguishNapalm(tx, ty); 
-                createFire(tx, ty, tileDuration, tileNapalm, type, d); 
+                createFire(tx, ty, tileDuration, tileNapalm, type, d, tileIsOilFire); 
             }
         }
     });
@@ -335,20 +375,21 @@ function explodeBomb(b) {
 function extinguishNapalm(gx, gy) { state.particles.forEach(p => { if (p.isFire && p.isNapalm && p.gx === gx && p.gy === gy) p.life = 0; }); }
 function destroyItem(x, y) { if (state.items[y][x] !== ITEMS.NONE) { state.items[y][x] = ITEMS.NONE; createFloatingText(x * TILE_SIZE, y * TILE_SIZE, "ASHES", "#555555"); for(let i=0; i<5; i++) state.particles.push({ x: x * TILE_SIZE + TILE_SIZE/2, y: y * TILE_SIZE + TILE_SIZE/2, vx: (Math.random()-0.5)*2, vy: (Math.random()-0.5)*2, life: 30, color: '#333333', size: Math.random()*3 }); } }
 
-// --- FIX: createFire akzeptiert alle Parameter und speichert maxLife ---
-function createFire(gx, gy, duration, isNapalm = false, type = 'center', dir = null) { 
+// --- UPDATE: createFire nimmt jetzt isOilFire entgegen ---
+function createFire(gx, gy, duration, isNapalm = false, type = 'center', dir = null, isOilFire = false) { 
     state.particles.push({ 
         gx: gx, 
         gy: gy, 
         isFire: true, 
         isNapalm: isNapalm, 
+        isOilFire: isOilFire, // NEU
         life: duration, 
         maxLife: duration,
         type: type, 
         dir: dir    
     }); 
 }
-// ---------------------------------------------------------------------
+// --------------------------------------------------------
 
 function destroyWall(x, y) { state.grid[y][x] = TYPES.EMPTY; for(let i=0; i<5; i++) state.particles.push({ x: x * TILE_SIZE + TILE_SIZE/2, y: y * TILE_SIZE + TILE_SIZE/2, vx: (Math.random()-0.5)*4, vy: (Math.random()-0.5)*4, life: 20, color: '#882222', size: Math.random()*5 }); }
 function killPlayer(p) { 
@@ -366,7 +407,7 @@ function killPlayer(p) {
 }
 function endGame(msg) { if (state.isGameOver) return; state.isGameOver = true; setTimeout(() => { document.getElementById('go-message').innerText = msg; document.getElementById('game-over').classList.remove('hidden'); }, 3000); }
 
-// --- FIX: Safe Game Loop mit Try-Catch ---
+// --- SAFE GAME LOOP ---
 function gameLoop() {
     if (!document.getElementById('main-menu').classList.contains('hidden')) { } 
     else if (!state.isPaused) { 
@@ -375,14 +416,13 @@ function gameLoop() {
             draw(ctx, canvas); 
         } catch (error) {
             console.error("Game Crashed:", error);
-            // Verhindert, dass das Spiel einfriert, aber zeigt den Fehler nicht permanent
+            alert("Game Crashed! Check Console for details.\n" + error.message);
             state.isPaused = true;
-            alert("Ein Fehler ist aufgetreten! Bitte lade die Seite neu.\n" + error.message);
         }
     }
     gameLoopId = requestAnimationFrame(gameLoop);
 }
-// -----------------------------------------
+// ----------------------
 
 // Start
 window.showMenu();
