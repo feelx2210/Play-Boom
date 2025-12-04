@@ -11,7 +11,7 @@ canvas.height = GRID_H * TILE_SIZE;
 
 let gameLoopId;
 
-// --- MENU LOGIC UPDATED---
+// --- MENU LOGIC ---
 function initMenu() {
     const charContainer = document.getElementById('char-select');
     charContainer.innerHTML = '';
@@ -256,16 +256,28 @@ function update() {
 }
 
 function triggerHellFire() {
-    const duration = 30; const range = 5; 
+    const duration = 60; const range = 5; 
     const dirs = [{x:0, y:-1}, {x:0, y:1}, {x:-1, y:0}, {x:1, y:0}];
     dirs.forEach(d => {
         for (let i = 1; i <= range; i++) {
             const tx = HELL_CENTER.x + (d.x * i); const ty = HELL_CENTER.y + (d.y * i);
             if (tx < 0 || tx >= GRID_W || ty < 0 || ty >= GRID_H) break;
             const tile = state.grid[ty][tx];
+            
+            // ÄNDERUNG: Auch hier Typ und Richtung übergeben
+            let type = (i === range) ? 'end' : 'middle';
+            
             if (tile === TYPES.WALL_HARD) break;
-            else if (tile === TYPES.WALL_SOFT) { destroyWall(tx, ty); createFire(tx, ty, duration); break; } 
-            else { destroyItem(tx, ty); createFire(tx, ty, duration); }
+            else if (tile === TYPES.WALL_SOFT) { 
+                type = 'end'; // An der Wand ist immer Ende
+                destroyWall(tx, ty); 
+                createFire(tx, ty, duration, false, type, d); 
+                break; 
+            } 
+            else { 
+                destroyItem(tx, ty); 
+                createFire(tx, ty, duration, false, type, d); 
+            }
         }
     });
 }
@@ -281,15 +293,17 @@ function explodeBomb(b) {
     const range = isBoostPad ? 15 : b.range; 
     
     let centerNapalm = b.napalm;
-    let centerDuration = b.napalm ? 750 : 40;
+    let centerDuration = b.napalm ? 720 : 60;
     if (b.underlyingTile === TYPES.WATER) {
         centerNapalm = false;
-        centerDuration = 40;
+        centerDuration = 60;
     }
 
     destroyItem(b.gx, b.gy); 
     extinguishNapalm(b.gx, b.gy); 
-    createFire(b.gx, b.gy, centerDuration, centerNapalm);
+    
+    // HIER: Center Fire hat Typ 'center'
+    createFire(b.gx, b.gy, centerDuration, centerNapalm, 'center');
     
     const dirs = [{x:0, y:-1}, {x:0, y:1}, {x:-1, y:0}, {x:1, y:0}];
     dirs.forEach(d => {
@@ -299,22 +313,26 @@ function explodeBomb(b) {
             const tile = state.grid[ty][tx];
             
             let tileNapalm = b.napalm;
-            let tileDuration = b.napalm ? 750 : 40;
+            let tileDuration = b.napalm ? 720 : 60;
             if (tile === TYPES.WATER) {
                 tileNapalm = false;
-                tileDuration = 40;
+                tileDuration = 60;
             }
+
+            // BESTIMMUNG DES TYPS (Mittelstück oder Ende)
+            let type = (i === range) ? 'end' : 'middle';
 
             if (tile === TYPES.WALL_HARD) break;
             else if (tile === TYPES.WALL_SOFT) { 
+                type = 'end'; // Wenn es auf eine Mauer trifft, ist es immer ein Endstück
                 destroyWall(tx, ty); 
                 extinguishNapalm(tx, ty); 
-                createFire(tx, ty, tileDuration, tileNapalm); 
+                createFire(tx, ty, tileDuration, tileNapalm, type, d); 
                 break; 
             } else { 
                 destroyItem(tx, ty); 
                 extinguishNapalm(tx, ty); 
-                createFire(tx, ty, tileDuration, tileNapalm); 
+                createFire(tx, ty, tileDuration, tileNapalm, type, d); 
             }
         }
     });
@@ -323,21 +341,36 @@ function explodeBomb(b) {
 function extinguishNapalm(gx, gy) { state.particles.forEach(p => { if (p.isFire && p.isNapalm && p.gx === gx && p.gy === gy) p.life = 0; }); }
 function destroyItem(x, y) { if (state.items[y][x] !== ITEMS.NONE) { state.items[y][x] = ITEMS.NONE; createFloatingText(x * TILE_SIZE, y * TILE_SIZE, "ASHES", "#555555"); for(let i=0; i<5; i++) state.particles.push({ x: x * TILE_SIZE + TILE_SIZE/2, y: y * TILE_SIZE + TILE_SIZE/2, vx: (Math.random()-0.5)*2, vy: (Math.random()-0.5)*2, life: 30, color: '#333333', size: Math.random()*3 }); } }
 
-// --- HIER IST DIE ÄNDERUNG: CREATE FIRE MIT MAXLIFE ---
-function createFire(gx, gy, duration, isNapalm = false) { 
+// --- NEU: CREATE FIRE NIMMT JETZT TYPE UND DIR ENTGEGEN ---
+function createFire(gx, gy, duration, isNapalm = false, type = 'center', dir = null) { 
     state.particles.push({ 
         gx: gx, 
         gy: gy, 
         isFire: true, 
         isNapalm: isNapalm, 
         life: duration, 
-        maxLife: duration // NEU: Für Phasenberechnung
+        maxLife: duration,
+        type: type, // 'center', 'middle', 'end'
+        dir: dir    // {x, y} Vector
     }); 
 }
-// -----------------------------------------------------
+// ----------------------------------------------------------
 
 function destroyWall(x, y) { state.grid[y][x] = TYPES.EMPTY; for(let i=0; i<5; i++) state.particles.push({ x: x * TILE_SIZE + TILE_SIZE/2, y: y * TILE_SIZE + TILE_SIZE/2, vx: (Math.random()-0.5)*4, vy: (Math.random()-0.5)*4, life: 20, color: '#882222', size: Math.random()*5 }); }
-function killPlayer(p) { if (p.invincibleTimer > 0 || !p.alive) return; p.alive = false; p.deathTimer = 90; createFloatingText(p.x, p.y, "ELIMINATED", "#ff0000"); for(let i=0; i<15; i++) state.particles.push({ x: p.x + 24, y: p.y + 24, vx: (Math.random()-0.5)*6, vy: (Math.random()-0.5)*6, life: 60, color: '#666666', size: 4 }); }
+function killPlayer(p) { 
+    if (p.invincibleTimer > 0 || !p.alive) return; 
+    p.alive = false; 
+    p.deathTimer = 90; 
+    createFloatingText(p.x, p.y, "ELIMINATED", "#ff0000"); 
+    
+    for(let i=0; i<15; i++) {
+        state.particles.push({ 
+            x: p.x + 24, y: p.y + 24, 
+            vx: (Math.random()-0.5)*6, vy: (Math.random()-0.5)*6, 
+            life: 60, color: '#666666', size: 4 
+        });
+    }
+}
 function endGame(msg) { if (state.isGameOver) return; state.isGameOver = true; setTimeout(() => { document.getElementById('go-message').innerText = msg; document.getElementById('game-over').classList.remove('hidden'); }, 3000); }
 
 function gameLoop() {
