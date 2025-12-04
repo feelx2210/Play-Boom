@@ -1,4 +1,5 @@
-import { TILE_SIZE, GRID_W, GRID_H, TYPES, BOMB_MODES, ITEMS, keyBindings } from './constants.js';
+// FIX: BOOST_PADS hinzugefügt
+import { TILE_SIZE, GRID_W, GRID_H, TYPES, BOMB_MODES, ITEMS, keyBindings, BOOST_PADS } from './constants.js';
 import { state } from './state.js';
 import { isSolid, createFloatingText } from './utils.js';
 import { drawCharacterSprite } from './graphics.js';
@@ -210,6 +211,7 @@ export class Player {
         const map = Array(GRID_H).fill().map(() => Array(GRID_W).fill(false));
         state.particles.forEach(p => { if (p.isFire && p.gx >= 0 && p.gx < GRID_W && p.gy >= 0 && p.gy < GRID_H) map[p.gy][p.gx] = true; });
         state.bombs.forEach(b => {
+            // FIX: Hier wird BOOST_PADS verwendet
             const isBoost = state.currentLevel.id !== 'stone' && BOOST_PADS.some(p => p.x === b.gx && p.y === b.gy);
             const range = isBoost ? 15 : b.range;
             map[b.gy][b.gx] = true; 
@@ -246,11 +248,10 @@ export class Player {
         visited.add(gx + "," + gy);
         const dirs = [{x:0, y:-1}, {x:0, y:1}, {x:-1, y:0}, {x:1, y:0}];
         
-        // --- SAFETY BREAK: Verhindert Endlosschleifen/Freezes bei komplexen Maps ---
         let ops = 0;
         while (queue.length > 0) {
             ops++;
-            if (ops > 500) break; // Notbremse!
+            if (ops > 500) break; 
             
             const current = queue.shift();
             if (!dangerMap[current.y][current.x]) return current.firstMove || {x:0, y:0}; 
@@ -290,12 +291,15 @@ export class Player {
             if (bomb && !bomb.walkableIds.includes(this.id)) return true;
             return false;
         };
+
         if (dx !== 0) {
             const nextX = this.x + dx;
             const xEdge = dx > 0 ? nextX + size + offset : nextX + offset;
             const topY = this.y + offset;
             const bottomY = this.y + size + offset;
             if (!check(xEdge, topY) && !check(xEdge, bottomY)) this.x = nextX;
+            else if (check(xEdge, topY) && !check(xEdge, bottomY)) this.y += this.speed;
+            else if (!check(xEdge, topY) && check(xEdge, bottomY)) this.y -= this.speed;
         }
         if (dy !== 0) {
             const nextY = this.y + dy;
@@ -303,6 +307,8 @@ export class Player {
             const leftX = this.x + offset;
             const rightX = this.x + size + offset;
             if (!check(leftX, yEdge) && !check(rightX, yEdge)) this.y = nextY;
+            else if (check(leftX, yEdge) && !check(rightX, yEdge)) this.x += this.speed;
+            else if (!check(leftX, yEdge) && check(rightX, yEdge)) this.x -= this.speed;
         }
         this.gridX = Math.round(this.x / TILE_SIZE);
         this.gridY = Math.round(this.y / TILE_SIZE);
@@ -342,7 +348,9 @@ export class Player {
             rollingBomb.gy = Math.round(rollingBomb.py / TILE_SIZE);
             rollingBomb.px = rollingBomb.gx * TILE_SIZE;
             rollingBomb.py = rollingBomb.gy * TILE_SIZE;
+            
             rollingBomb.underlyingTile = state.grid[rollingBomb.gy][rollingBomb.gx];
+            
             state.grid[rollingBomb.gy][rollingBomb.gx] = TYPES.BOMB;
             return;
         }
