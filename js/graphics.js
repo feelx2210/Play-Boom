@@ -2,26 +2,22 @@ import { TILE_SIZE, GRID_W, GRID_H, TYPES, ITEMS, BOOST_PADS, HELL_CENTER } from
 import { state } from './state.js';
 
 // --- PERFORMANCE CACHE ---
-// Wir speichern fertig gemalte Bilder hier, um sie nicht 60x pro Sekunde neu zu berechnen.
 const spriteCache = {};
 
 function getCachedSprite(charDef, d, isCursed) {
-    // Eindeutiger Schlüssel für den Cache (z.B. "lucifer_front_normal")
     const key = `${charDef.id}_${d}_${isCursed ? 'cursed' : 'normal'}`;
     
-    // Wenn das Bild schon existiert, gib es sofort zurück!
     if (spriteCache[key]) return spriteCache[key];
 
-    // Wenn nicht, malen wir es EINMALIG auf eine unsichtbare Leinwand
+    // Einmalig auf eine unsichtbare Leinwand malen
     const c = document.createElement('canvas');
     c.width = 48; 
     c.height = 48;
     const ctx = c.getContext('2d');
     
-    // Verschiebe den Nullpunkt in die Mitte (24, 24), damit die Mal-Befehle funktionieren
     ctx.translate(24, 24);
 
-    // --- HIER BEGINNT DER URSPRÜNGLICHE MAL-CODE ---
+    // --- ORIGINAL MAL-LOGIK START ---
     if (charDef.id === 'lucifer') {
         const cBase = '#e62020'; const cDark = '#aa0000'; const cLite = '#ff5555'; const cHoof = '#1a0505'; 
         if (d === 'side') {
@@ -165,12 +161,14 @@ function getCachedSprite(charDef, d, isCursed) {
     if (isCursed && Math.floor(Date.now()/100)%2===0) {
         ctx.globalCompositeOperation = 'source-atop'; ctx.fillStyle = 'rgba(255, 255, 255, 0.5)'; ctx.fillRect(-25, -35, 50, 60); ctx.globalCompositeOperation = 'source-over';
     }
-    // --- END OF DRAWING CODE ---
+    // --- ORIGINAL MAL-LOGIK ENDE ---
 
+    // Speichere das gemalte Bild im Cache
     spriteCache[key] = c;
     return c;
 }
 
+// Dies ist die Funktion, die das Spiel jetzt aufruft. Sie holt das Bild aus dem Cache.
 export function drawCharacterSprite(ctx, x, y, charDef, isCursed = false, dir = {x:0, y:1}) {
     ctx.save();
     ctx.translate(x, y);
@@ -178,16 +176,15 @@ export function drawCharacterSprite(ctx, x, y, charDef, isCursed = false, dir = 
     let d = 'front'; 
     if (dir.y < 0) d = 'back';
     else if (dir.x !== 0) d = 'side';
-    
     if (dir.x < 0) ctx.scale(-1, 1); 
 
-    // Shadow
+    // Schatten malen
     ctx.fillStyle = 'rgba(0,0,0,0.3)';
     ctx.beginPath(); ctx.ellipse(0, 16, 12, 5, 0, 0, Math.PI*2); ctx.fill();
 
-    // Use Cache
+    // Cache abrufen und zeichnen!
     const sprite = getCachedSprite(charDef, d, isCursed);
-    // Draw the pre-rendered sprite, centered on the context
+    // Das Bild zentriert (-24, -24) auf den Kontext stempeln
     ctx.drawImage(sprite, -24, -24);
 
     ctx.restore();
@@ -218,12 +215,12 @@ export function drawItem(ctx, type, x, y) {
     const cx = x + TILE_SIZE/2; const cy = y + TILE_SIZE/2;
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = '32px sans-serif';
     switch(type) {
-        case ITEMS.BOMB_UP: ctx.fillStyle = '#0088ff'; ctx.fillText('\uD83D\uDCA3', cx, cy); break; // Bomb
-        case ITEMS.RANGE_UP: ctx.fillStyle = '#ffaa00'; ctx.fillText('\uD83D\uDD25', cx, cy); break; // Fire
-        case ITEMS.SPEED_UP: ctx.fillStyle = '#ffff00'; ctx.fillText('\uD83D\uDC5F', cx, cy); break; // Shoe
-        case ITEMS.NAPALM: ctx.fillStyle = '#ff0000'; ctx.fillText('\u2622\uFE0F', cx, cy); break;   // Radioactive
-        case ITEMS.ROLLING: ctx.fillStyle = '#ffffff'; ctx.fillText('\uD83C\uDFB3', cx, cy); break; // Bowling
-        case ITEMS.SKULL: ctx.fillStyle = '#cccccc'; ctx.fillText('\uD83D\uDC80', cx, cy); break;   // Skull
+        case ITEMS.BOMB_UP: ctx.fillStyle = '#0088ff'; ctx.fillText('\uD83D\uDCA3', cx, cy); break;
+        case ITEMS.RANGE_UP: ctx.fillStyle = '#ffaa00'; ctx.fillText('\uD83D\uDD25', cx, cy); break;
+        case ITEMS.SPEED_UP: ctx.fillStyle = '#ffff00'; ctx.fillText('\uD83D\uDC5F', cx, cy); break;
+        case ITEMS.NAPALM: ctx.fillStyle = '#ff0000'; ctx.fillText('\u2622\uFE0F', cx, cy); break;
+        case ITEMS.ROLLING: ctx.fillStyle = '#ffffff'; ctx.fillText('\uD83C\uDFB3', cx, cy); break;
+        case ITEMS.SKULL: ctx.fillStyle = '#cccccc'; ctx.fillText('\uD83D\uDC80', cx, cy); break;
     }
 }
 
