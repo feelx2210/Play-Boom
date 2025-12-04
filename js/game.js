@@ -277,19 +277,53 @@ function triggerHellFire() {
 }
 
 function explodeBomb(b) {
-    b.owner.activeBombs--; if (!b.isRolling) state.grid[b.gy][b.gx] = TYPES.EMPTY; 
+    b.owner.activeBombs--; 
+    // RESTORE GRID (Benutze underlyingTile wenn vorhanden, sonst EMPTY)
+    if (!b.isRolling) {
+        state.grid[b.gy][b.gx] = (b.underlyingTile !== undefined) ? b.underlyingTile : TYPES.EMPTY;
+    }
+    
     const isBoostPad = state.currentLevel.id !== 'stone' && BOOST_PADS.some(p => p.x === b.gx && p.y === b.gy);
-    const range = isBoostPad ? 15 : b.range; const duration = b.napalm ? 600 : 30;
-    destroyItem(b.gx, b.gy); extinguishNapalm(b.gx, b.gy); createFire(b.gx, b.gy, duration, b.napalm);
+    const range = isBoostPad ? 15 : b.range; 
+    
+    // CENTER CHECK: Wenn auf Wasser, KEIN Napalm (nur Standard Explosion)
+    let centerNapalm = b.napalm;
+    let centerDuration = b.napalm ? 600 : 30;
+    if (b.underlyingTile === TYPES.WATER) {
+        centerNapalm = false;
+        centerDuration = 30;
+    }
+
+    destroyItem(b.gx, b.gy); 
+    extinguishNapalm(b.gx, b.gy); 
+    createFire(b.gx, b.gy, centerDuration, centerIsNapalm);
+    
     const dirs = [{x:0, y:-1}, {x:0, y:1}, {x:-1, y:0}, {x:1, y:0}];
     dirs.forEach(d => {
         for (let i = 1; i <= range; i++) {
             const tx = b.gx + (d.x * i); const ty = b.gy + (d.y * i);
             if (tx < 0 || tx >= GRID_W || ty < 0 || ty >= GRID_H) break;
             const tile = state.grid[ty][tx];
+            
+            // TILE CHECK: Prüfe Untergrund für das Feuer
+            let tileNapalm = b.napalm;
+            let tileDuration = b.napalm ? 600 : 30;
+            if (tile === TYPES.WATER) {
+                tileNapalm = false;
+                tileDuration = 30;
+            }
+
             if (tile === TYPES.WALL_HARD) break;
-            else if (tile === TYPES.WALL_SOFT) { destroyWall(tx, ty); extinguishNapalm(tx, ty); createFire(tx, ty, duration, b.napalm); break; } 
-            else { destroyItem(tx, ty); extinguishNapalm(tx, ty); createFire(tx, ty, duration, b.napalm); }
+            else if (tile === TYPES.WALL_SOFT) { 
+                destroyWall(tx, ty); 
+                extinguishNapalm(tx, ty); 
+                createFire(tx, ty, tileDuration, tileNapalm); 
+                break; 
+            } else { 
+                destroyItem(tx, ty); 
+                extinguishNapalm(tx, ty); 
+                createFire(tx, ty, tileDuration, tileNapalm); 
+            }
         }
     });
 }
