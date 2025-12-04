@@ -1,5 +1,5 @@
 import { LEVELS } from './constants.js';
-//added for push
+
 export const state = {
     grid: [],
     items: [],
@@ -15,5 +15,7 @@ export const state = {
     hellFireTimer: 0,
     hellFirePhase: 'IDLE', 
     hellFireActive: false,
+    // NEU: Timer für das Zufrieren im Eis-Level
+    iceRespawnTimer: 0,
     keys: {}
 };
