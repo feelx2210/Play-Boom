@@ -3,7 +3,6 @@ import { state } from './state.js';
 import { createFloatingText, isSolid } from './utils.js';
 import { draw, drawLevelPreview, drawCharacterSprite } from './graphics.js';
 import { Player } from './player.js';
-// WICHTIG: UI-Logik wird importiert
 import { endGame, showMenu, handleMenuInput, togglePause } from './ui.js';
 
 const canvas = document.getElementById('gameCanvas');
@@ -14,9 +13,7 @@ canvas.height = GRID_H * TILE_SIZE;
 let gameLoopId;
 
 // --- SPIEL STARTEN ---
-// Diese Funktion muss global sein, damit ui.js sie aufrufen kann
 window.startGame = function() {
-    // UI ausblenden
     document.getElementById('main-menu').classList.add('hidden');
     document.getElementById('game-over').classList.add('hidden');
     document.getElementById('ui-layer').classList.remove('hidden');
@@ -30,19 +27,15 @@ window.startGame = function() {
     container.style.borderColor = state.currentLevel.border;
     document.getElementById('p1-name').innerText = userChar.name.toUpperCase();
 
-    // Reset State
-    state.grid = []; 
-    state.items = []; 
-    state.bombs = []; 
-    state.particles = []; 
-    state.players = [];
-    state.isGameOver = false; 
-    state.isPaused = false;
-    state.hellFireTimer = 0; 
-    state.hellFirePhase = 'IDLE'; 
-    state.hellFireActive = false; 
+    state.grid = []; state.items = []; state.bombs = []; state.particles = []; state.players = [];
+    state.isGameOver = false; state.isPaused = false;
+    state.hellFireTimer = 0; state.hellFirePhase = 'IDLE'; state.hellFireActive = false;
+    
+    // NEU: Ice Timer initialisieren (30-45s = 1800-2700 Frames)
+    if (state.currentLevel.id === 'ice') {
+        state.iceRespawnTimer = 1800 + Math.random() * 900;
+    }
 
-    // Grid generieren
     for (let y = 0; y < GRID_H; y++) {
         let row = []; let itemRow = [];
         for (let x = 0; x < GRID_W; x++) {
@@ -65,11 +58,9 @@ window.startGame = function() {
             }
             itemRow.push(ITEMS.NONE);
         }
-        state.grid.push(row); 
-        state.items.push(itemRow);
+        state.grid.push(row); state.items.push(itemRow);
     }
 
-    // Hell: Ölfelder initialisieren
     if (state.currentLevel.id === 'hell') {
         OIL_PADS.forEach(oil => {
             if (state.grid[oil.y][oil.x] === TYPES.EMPTY) {
@@ -79,14 +70,9 @@ window.startGame = function() {
     }
 
     const corners = [{x: 1, y: 1}, {x: 1, y: 2}, {x: 2, y: 1}, {x: GRID_W-2, y: 1}, {x: GRID_W-2, y: 2}, {x: GRID_W-3, y: 1}, {x: 1, y: GRID_H-2}, {x: 1, y: GRID_H-3}, {x: 2, y: GRID_H-2}, {x: GRID_W-2, y: GRID_H-2}, {x: GRID_W-3, y: GRID_H-2}, {x: GRID_W-2, y: GRID_H-3}];
-    corners.forEach(p => state.grid[p.y][p.x] = TYPES.EMPTY);
-    
     if (state.currentLevel.id === 'jungle') for(let x=1; x<GRID_W-1; x++) state.items[7][x] = ITEMS.NONE; 
-    
-    if (state.currentLevel.hasCentralFire) { 
-        state.grid[HELL_CENTER.y][HELL_CENTER.x] = TYPES.EMPTY; 
-        state.items[HELL_CENTER.y][HELL_CENTER.x] = ITEMS.NONE; 
-    }
+    corners.forEach(p => state.grid[p.y][p.x] = TYPES.EMPTY);
+    if (state.currentLevel.hasCentralFire) { state.grid[HELL_CENTER.y][HELL_CENTER.x] = TYPES.EMPTY; state.items[HELL_CENTER.y][HELL_CENTER.x] = ITEMS.NONE; }
 
     distributeItems();
 
@@ -115,31 +101,67 @@ function distributeItems() {
 
 // --- INPUT LISTENER ---
 window.addEventListener('keydown', e => {
-    // Wenn wir im Menü sind, an ui.js delegieren!
     if (!document.getElementById('main-menu').classList.contains('hidden')) {
         handleMenuInput(e.code);
         return;
     }
-    
-    // Im Spiel
     state.keys[e.code] = true;
     if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)) e.preventDefault();
-    
     if (e.code === keyBindings.CHANGE && state.players[0]) state.players[0].cycleBombType();
-    
-    // Pause umschalten (P oder ESC)
     if (e.key.toLowerCase() === 'p' || e.code === 'Escape') togglePause();
 });
-
 window.addEventListener('keyup', e => { state.keys[e.code] = false; });
 
+// --- HELPER: Zufrieren im Eis-Level ---
+function triggerIceRespawn() {
+    const candidates = [];
+    for(let y=1; y<GRID_H-1; y++) {
+        for(let x=1; x<GRID_W-1; x++) {
+             // Nur wo leer ist
+             if(state.grid[y][x] === TYPES.EMPTY) {
+                 // Keine Bombe da?
+                 const hasBomb = state.bombs.some(b => b.gx === x && b.gy === y);
+                 // Kein Spieler da?
+                 const hasPlayer = state.players.some(p => {
+                     const pgx = Math.round(p.x / TILE_SIZE);
+                     const pgy = Math.round(p.y / TILE_SIZE);
+                     return pgx === x && pgy === y;
+                 });
+                 
+                 if(!hasBomb && !hasPlayer) {
+                     candidates.push({x, y});
+                 }
+             }
+        }
+    }
+    
+    if(candidates.length > 0) {
+        const target = candidates[Math.floor(Math.random() * candidates.length)];
+        // Starte Animation (Partikel)
+        state.particles.push({
+            gx: target.x, gy: target.y,
+            life: 60, maxLife: 60,
+            type: 'freeze_anim'
+        });
+    }
+}
 
 // --- UPDATE LOOP ---
 function update() {
     if (state.isGameOver) return;
     state.players.forEach(p => p.inFire = false);
 
-    // Hellfire
+    // NEU: Ice Respawn Logic
+    if (state.currentLevel.id === 'ice') {
+        state.iceRespawnTimer--;
+        if (state.iceRespawnTimer <= 0) {
+            triggerIceRespawn();
+            // Reset Timer: 30-45s (1800-2700 Frames)
+            state.iceRespawnTimer = 1800 + Math.random() * 900;
+        }
+    }
+
+    // Hellfire Logic
     if (state.currentLevel.hasCentralFire) {
         if (!state.hellFireActive) {
             if (state.particles.some(p => p.isFire && p.gx === HELL_CENTER.x && p.gy === HELL_CENTER.y)) {
@@ -153,7 +175,6 @@ function update() {
         }
     }
 
-    // Bombs
     for (let i = state.bombs.length - 1; i >= 0; i--) {
         let b = state.bombs[i]; b.timer--;
         if (b.isRolling) {
@@ -186,7 +207,6 @@ function update() {
         if (b.timer <= 0) { explodeBomb(b); state.bombs.splice(i, 1); }
     }
 
-    // Particles
     for (let i = state.particles.length - 1; i >= 0; i--) {
         let p = state.particles[i]; p.life--;
         if (p.text) p.y += p.vy;
@@ -202,15 +222,26 @@ function update() {
             const hitBombIndex = state.bombs.findIndex(b => b.gx === p.gx && b.gy === p.gy);
             if (hitBombIndex !== -1) { const chainedBomb = state.bombs[hitBombIndex]; if (chainedBomb.timer > 1) { if(chainedBomb.isRolling) { chainedBomb.isRolling = false; chainedBomb.px = chainedBomb.gx * TILE_SIZE; chainedBomb.py = chainedBomb.gy * TILE_SIZE; chainedBomb.underlyingTile = state.grid[chainedBomb.gy][chainedBomb.gx]; } chainedBomb.timer = 0; } }
         }
+        
+        // NEU: Check für Ice Freeze Animation
+        if (p.type === 'freeze_anim' && p.life === 1) {
+            // Letzter Frame: Wand setzen!
+            // Sicherheitshalber nochmal prüfen, ob frei (falls Spieler reingelaufen ist während Animation)
+            const hasPlayer = state.players.some(pl => Math.round(pl.x / TILE_SIZE) === p.gx && Math.round(pl.y / TILE_SIZE) === p.gy);
+            const hasBomb = state.bombs.some(b => b.gx === p.gx && b.gy === p.gy);
+            
+            if (!hasPlayer && !hasBomb && state.grid[p.gy][p.gx] === TYPES.EMPTY) {
+                 state.grid[p.gy][p.gx] = TYPES.WALL_SOFT;
+            }
+        }
+
         if (p.life <= 0) state.particles.splice(i, 1);
     }
 
-    // Damage & Update
     state.players.forEach(p => { if (p.inFire) { p.fireTimer++; if (p.fireTimer >= 12) { killPlayer(p); p.fireTimer = 0; } } else p.fireTimer = 0; });
     let aliveCount = 0; let livingPlayers = [];
     state.players.forEach(p => { p.update(); if (p.alive) { aliveCount++; livingPlayers.push(p); } });
 
-    // Infection
     for (let i = 0; i < livingPlayers.length; i++) {
         for (let j = i + 1; j < livingPlayers.length; j++) {
             const p1 = livingPlayers[i]; const p2 = livingPlayers[j];
@@ -224,7 +255,6 @@ function update() {
     if (state.players.length > 1 && aliveCount <= 1) { const winner = livingPlayers.length > 0 ? livingPlayers[0] : null; endGame(winner ? winner.name + " WINS!" : "DRAW!"); }
 }
 
-// --- HELPERS ---
 function triggerHellFire() {
     const duration = 100; const range = 5; 
     const dirs = [{x:0, y:-1}, {x:0, y:1}, {x:-1, y:0}, {x:1, y:0}];
@@ -234,18 +264,9 @@ function triggerHellFire() {
             if (tx < 0 || tx >= GRID_W || ty < 0 || ty >= GRID_H) break;
             const tile = state.grid[ty][tx];
             let type = (i === range) ? 'end' : 'middle';
-            
             if (tile === TYPES.WALL_HARD) break;
-            else if (tile === TYPES.WALL_SOFT) { 
-                type = 'end';
-                destroyWall(tx, ty); 
-                createFire(tx, ty, duration, false, type, d); 
-                break; 
-            } 
-            else { 
-                destroyItem(tx, ty); 
-                createFire(tx, ty, duration, false, type, d); 
-            }
+            else if (tile === TYPES.WALL_SOFT) { destroyWall(tx, ty); createFire(tx, ty, duration, false, type, d); break; } 
+            else { destroyItem(tx, ty); createFire(tx, ty, duration, false, type, d); }
         }
     });
 }
@@ -319,30 +340,10 @@ function explodeBomb(b) {
 
 function extinguishNapalm(gx, gy) { state.particles.forEach(p => { if (p.isFire && p.isNapalm && p.gx === gx && p.gy === gy) p.life = 0; }); }
 function destroyItem(x, y) { if (state.items[y][x] !== ITEMS.NONE) { state.items[y][x] = ITEMS.NONE; createFloatingText(x * TILE_SIZE, y * TILE_SIZE, "ASHES", "#555555"); for(let i=0; i<5; i++) state.particles.push({ x: x * TILE_SIZE + TILE_SIZE/2, y: y * TILE_SIZE + TILE_SIZE/2, vx: (Math.random()-0.5)*2, vy: (Math.random()-0.5)*2, life: 30, color: '#333333', size: Math.random()*3 }); } }
-
-function createFire(gx, gy, duration, isNapalm = false, type = 'center', dir = null, isOilFire = false) { 
-    state.particles.push({ 
-        gx: gx, 
-        gy: gy, 
-        isFire: true, 
-        isNapalm: isNapalm, 
-        isOilFire: isOilFire, 
-        life: duration, 
-        maxLife: duration,
-        type: type, 
-        dir: dir    
-    }); 
-}
-
+function createFire(gx, gy, duration, isNapalm = false, type = 'center', dir = null, isOilFire = false) { state.particles.push({ gx: gx, gy: gy, isFire: true, isNapalm: isNapalm, isOilFire: isOilFire, life: duration, maxLife: duration, type: type, dir: dir }); }
 function destroyWall(x, y) { state.grid[y][x] = TYPES.EMPTY; for(let i=0; i<5; i++) state.particles.push({ x: x * TILE_SIZE + TILE_SIZE/2, y: y * TILE_SIZE + TILE_SIZE/2, vx: (Math.random()-0.5)*4, vy: (Math.random()-0.5)*4, life: 20, color: '#882222', size: Math.random()*5 }); }
-function killPlayer(p) { 
-    if (p.invincibleTimer > 0 || !p.alive) return; 
-    p.alive = false; p.deathTimer = 90; 
-    createFloatingText(p.x, p.y, "ELIMINATED", "#ff0000"); 
-    for(let i=0; i<15; i++) { state.particles.push({ x: p.x + 24, y: p.y + 24, vx: (Math.random()-0.5)*6, vy: (Math.random()-0.5)*6, life: 60, color: '#666666', size: 4 }); }
-}
+function killPlayer(p) { if (p.invincibleTimer > 0 || !p.alive) return; p.alive = false; p.deathTimer = 90; createFloatingText(p.x, p.y, "ELIMINATED", "#ff0000"); for(let i=0; i<15; i++) state.particles.push({ x: p.x + 24, y: p.y + 24, vx: (Math.random()-0.5)*6, vy: (Math.random()-0.5)*6, life: 60, color: '#666666', size: 4 }); }
 
-// --- SAFE GAME LOOP ---
 function gameLoop() {
     if (!document.getElementById('main-menu').classList.contains('hidden')) { } 
     else if (!state.isPaused) { 
