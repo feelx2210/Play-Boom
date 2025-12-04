@@ -16,7 +16,7 @@ function getCachedSprite(charDef, d, isCursed) {
     
     ctx.translate(24, 24);
 
-    // --- MAL-LOGIK (hier unverändert, nur verkürzt dargestellt für Übersichtlichkeit) ---
+    // --- MAL-LOGIK ---
     if (charDef.id === 'lucifer') {
         const cBase = '#e62020'; const cDark = '#aa0000'; const cLite = '#ff5555'; const cHoof = '#1a0505'; 
         if (d === 'side') { ctx.fillStyle = cDark; ctx.fillRect(2, 12, 6, 10); ctx.fillStyle = cHoof; ctx.fillRect(2, 20, 6, 4); ctx.fillStyle = cBase; ctx.fillRect(-6, 12, 6, 10); ctx.fillStyle = cHoof; ctx.fillRect(-6, 20, 6, 4); } 
@@ -68,11 +68,9 @@ export function drawCharacterSprite(ctx, x, y, charDef, isCursed = false, dir = 
     else if (dir.x !== 0) d = 'side';
     if (dir.x < 0) ctx.scale(-1, 1); 
 
-    // Shadow
     ctx.fillStyle = 'rgba(0,0,0,0.3)';
     ctx.beginPath(); ctx.ellipse(0, 16, 12, 5, 0, 0, Math.PI*2); ctx.fill();
 
-    // Use Cache
     const sprite = getCachedSprite(charDef, d, isCursed);
     ctx.drawImage(sprite, -24, -24);
 
@@ -117,7 +115,6 @@ export function draw(ctx, canvas) {
     ctx.fillStyle = state.currentLevel.bg;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // --- ÄNDERUNG: Boost Pads nur in Hell und Ice zeichnen ---
     if (state.currentLevel.id === 'hell' || state.currentLevel.id === 'ice') {
         BOOST_PADS.forEach(pad => {
             const px = pad.x * TILE_SIZE; const py = pad.y * TILE_SIZE;
@@ -130,7 +127,6 @@ export function draw(ctx, canvas) {
             ctx.beginPath(); ctx.moveTo(px+46, py+24); ctx.lineTo(px+38, py+18); ctx.lineTo(px+38, py+30); ctx.fill(); 
         });
     }
-    // ----------------------------------------------------------
 
     if (state.currentLevel.hasCentralFire) {
         const cx = HELL_CENTER.x * TILE_SIZE; const cy = HELL_CENTER.y * TILE_SIZE;
@@ -177,6 +173,7 @@ export function draw(ctx, canvas) {
             if (item !== ITEMS.NONE && state.grid[y][x] !== TYPES.WALL_SOFT) drawItem(ctx, item, px, py);
             
             let tile = state.grid[y][x];
+            // Visual Fix: Wenn hier eine Bombe liegt, zeichne den Untergrund!
             if (tile === TYPES.BOMB) {
                 const bomb = state.bombs.find(b => b.gx === x && b.gy === y);
                 if (bomb && bomb.underlyingTile !== undefined) {
@@ -240,14 +237,53 @@ export function draw(ctx, canvas) {
         }
     }
 
+    // --- HIER WIRD DIE BOMBE GEZEICHNET ---
     state.bombs.forEach(b => {
-        const px = b.px; const py = b.py; const scale = 1 + Math.sin(Date.now() / 100) * 0.1;
-        let baseColor = '#444444'; if (state.currentLevel.id === 'jungle') baseColor = '#000000';
-        ctx.fillStyle = b.napalm ? '#dd0000' : baseColor; if (b.isBlue) ctx.fillStyle = '#6666ff';
-        ctx.beginPath(); ctx.arc(px + TILE_SIZE/2, py + TILE_SIZE/2, 16 * scale, 0, Math.PI * 2); ctx.fill();
-        ctx.strokeStyle = '#aaaaaa'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(px + TILE_SIZE/2 + 8, py + TILE_SIZE/2 - 8); ctx.lineTo(px + TILE_SIZE/2 + 12, py + TILE_SIZE/2 - 14); ctx.stroke();
-        ctx.fillStyle = 'orange'; ctx.beginPath(); ctx.arc(px + TILE_SIZE/2 + 12, py + TILE_SIZE/2 - 14, 3, 0, Math.PI*2); ctx.fill();
+        const px = b.px; const py = b.py; 
+        
+        const scale = 1 + Math.sin(Date.now() / 100) * 0.1;
+        
+        let baseColor = '#444444'; 
+        if (state.currentLevel.id === 'jungle') baseColor = '#000000';
+        
+        ctx.fillStyle = b.napalm ? '#dd0000' : baseColor; 
+        if (b.isBlue) ctx.fillStyle = '#6666ff';
+        
+        // Bombenkörper
+        ctx.beginPath(); 
+        ctx.arc(px + TILE_SIZE/2, py + TILE_SIZE/2, 16 * scale, 0, Math.PI * 2); 
+        ctx.fill();
+        
+        // Zündschnur-Spitze (beweglich durch Scale)
+        const tipX = px + TILE_SIZE/2 + 12 * scale; // Skaliert leicht mit
+        const tipY = py + TILE_SIZE/2 - 14 * scale;
+        
+        ctx.strokeStyle = '#aaaaaa'; 
+        ctx.lineWidth = 2; 
+        ctx.beginPath(); 
+        ctx.moveTo(px + TILE_SIZE/2 + 6, py + TILE_SIZE/2 - 6); 
+        ctx.lineTo(tipX, tipY); 
+        ctx.stroke();
+        
+        // --- NEU: FUNKELNDE ZÜNDSCHNUR ---
+        // 1. Glühender Kern
+        ctx.fillStyle = Math.random() > 0.5 ? '#ffff00' : '#ff4400';
+        ctx.beginPath(); 
+        ctx.arc(tipX, tipY, 3 + Math.random()*2, 0, Math.PI*2); 
+        ctx.fill();
+
+        // 2. Sprühende Funken
+        for(let j=0; j<3; j++) {
+            const angle = Math.random() * Math.PI * 2;
+            const dist = 2 + Math.random() * 6;
+            ctx.fillStyle = '#ffffff';
+            ctx.globalAlpha = 0.8;
+            ctx.fillRect(tipX + Math.cos(angle)*dist, tipY + Math.sin(angle)*dist, 2, 2);
+            ctx.globalAlpha = 1.0;
+        }
+        // --------------------------------
     });
+    // ---------------------------------------
 
     state.particles.forEach(p => {
         const px = p.gx * TILE_SIZE; const py = p.gy * TILE_SIZE;
