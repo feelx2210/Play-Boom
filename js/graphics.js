@@ -1,17 +1,22 @@
 import { TILE_SIZE, GRID_W, GRID_H, TYPES, ITEMS, BOOST_PADS, HELL_CENTER } from './constants.js';
 import { state } from './state.js';
 
+// --- PERFORMANCE CACHE ---
 const spriteCache = {};
 
 function getCachedSprite(charDef, d, isCursed) {
     const key = `${charDef.id}_${d}_${isCursed ? 'cursed' : 'normal'}`;
+    
     if (spriteCache[key]) return spriteCache[key];
 
     const c = document.createElement('canvas');
-    c.width = 48; c.height = 48;
+    c.width = 48; 
+    c.height = 48;
     const ctx = c.getContext('2d');
+    
     ctx.translate(24, 24);
 
+    // --- MAL-LOGIK ---
     if (charDef.id === 'lucifer') {
         const cBase = '#e62020'; const cDark = '#aa0000'; const cLite = '#ff5555'; const cHoof = '#1a0505'; 
         if (d === 'side') { ctx.fillStyle = cDark; ctx.fillRect(2, 12, 6, 10); ctx.fillStyle = cHoof; ctx.fillRect(2, 20, 6, 4); ctx.fillStyle = cBase; ctx.fillRect(-6, 12, 6, 10); ctx.fillStyle = cHoof; ctx.fillRect(-6, 20, 6, 4); } 
@@ -106,6 +111,29 @@ export function drawItem(ctx, type, x, y) {
     }
 }
 
+// --- NEUE HILFSFUNKTION FÜR FLAMMEN ---
+function drawFlame(ctx, x, y, radius, innerColor, outerColor, jaggy = 0.2) {
+    const grad = ctx.createRadialGradient(x, y, radius * 0.2, x, y, radius);
+    grad.addColorStop(0, innerColor);
+    grad.addColorStop(1, outerColor);
+    ctx.fillStyle = grad;
+
+    ctx.beginPath();
+    const points = 16;
+    for (let i = 0; i < points; i++) {
+        const angle = (i / points) * Math.PI * 2;
+        // Zufällige Variation im Radius für den "zackigen" Look
+        const r = radius * (1 - jaggy + Math.random() * jaggy * 2);
+        const px = x + Math.cos(angle) * r;
+        const py = y + Math.sin(angle) * r;
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+    }
+    ctx.closePath();
+    ctx.fill();
+}
+// --------------------------------------
+
 export function draw(ctx, canvas) {
     ctx.fillStyle = state.currentLevel.bg;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -168,6 +196,7 @@ export function draw(ctx, canvas) {
             if (item !== ITEMS.NONE && state.grid[y][x] !== TYPES.WALL_SOFT) drawItem(ctx, item, px, py);
             
             let tile = state.grid[y][x];
+            // Visual Fix: Wenn hier eine Bombe liegt, zeichne den Untergrund!
             if (tile === TYPES.BOMB) {
                 const bomb = state.bombs.find(b => b.gx === x && b.gy === y);
                 if (bomb && bomb.underlyingTile !== undefined) {
@@ -242,13 +271,11 @@ export function draw(ctx, canvas) {
         ctx.fillStyle = b.napalm ? '#dd0000' : baseColor; 
         if (b.isBlue) ctx.fillStyle = '#6666ff';
         
-        // Bombenkörper
         ctx.beginPath(); 
         ctx.arc(px + TILE_SIZE/2, py + TILE_SIZE/2, 16 * scale, 0, Math.PI * 2); 
         ctx.fill();
         
-        // Zündschnur-Spitze (beweglich durch Scale)
-        const tipX = px + TILE_SIZE/2 + 12 * scale; // Skaliert leicht mit
+        const tipX = px + TILE_SIZE/2 + 12 * scale; 
         const tipY = py + TILE_SIZE/2 - 14 * scale;
         
         ctx.strokeStyle = '#aaaaaa'; 
@@ -258,14 +285,11 @@ export function draw(ctx, canvas) {
         ctx.lineTo(tipX, tipY); 
         ctx.stroke();
         
-        // --- NEU: FUNKELNDE ZÜNDSCHNUR ---
-        // 1. Glühender Kern
         ctx.fillStyle = Math.random() > 0.5 ? '#ffff00' : '#ff4400';
         ctx.beginPath(); 
         ctx.arc(tipX, tipY, 3 + Math.random()*2, 0, Math.PI*2); 
         ctx.fill();
 
-        // 2. Sprühende Funken
         for(let j=0; j<3; j++) {
             const angle = Math.random() * Math.PI * 2;
             const dist = 2 + Math.random() * 6;
@@ -274,17 +298,14 @@ export function draw(ctx, canvas) {
             ctx.fillRect(tipX + Math.cos(angle)*dist, tipY + Math.sin(angle)*dist, 2, 2);
             ctx.globalAlpha = 1.0;
         }
-        // --------------------------------
     });
 
-    // --- HIER IST DIE NEUE FEUER-ZEICHEN-LOGIK ---
+    // --- NEUE FEUER-ZEICHEN-LOGIK MIT REALISTISCHEREN FLAMMEN ---
     state.particles.forEach(p => {
         const px = p.gx * TILE_SIZE;
         const py = p.gy * TILE_SIZE;
 
         if (p.isFire) {
-            // Prozentualer Fortschritt (1.0 = Start, 0.0 = Ende)
-            // Wir nutzen (p.maxLife || p.life) als Fallback, falls maxLife fehlt (für alte Partikel, theoretisch)
             const max = p.maxLife || 100; 
             const pct = p.life / max; 
 
@@ -294,33 +315,26 @@ export function draw(ctx, canvas) {
             ctx.save();
 
             if (pct > 0.8) { 
-                // PHASE 1: EXPLOSION (Start)
-                // Wächst schnell an, sehr hell
+                // PHASE 1: EXPLOSION (Start) - Hell, schnell wachsend
                 const grow = 1 - ((pct - 0.8) * 5); // 0 -> 1
-                ctx.fillStyle = '#ffffff';
-                ctx.beginPath(); ctx.arc(cx, cy, 24 * grow, 0, Math.PI*2); ctx.fill();
-                ctx.fillStyle = '#ffff00';
-                ctx.beginPath(); ctx.arc(cx, cy, 18 * grow, 0, Math.PI*2); ctx.fill();
+                // Innen fast Weiß, außen Gelb, wenig zackig
+                drawFlame(ctx, cx, cy, 28 * grow, '#ffffff', '#ffff00', 0.1);
             } else if (pct > 0.2) {
-                // PHASE 2: LODERN (Hauptteil)
-                // Pulsierendes Feuer
-                const pulse = Math.sin(Date.now() / 30) * 3;
-                const baseSize = 20;
-                
-                // Äußerer Schein (Orange)
-                ctx.fillStyle = p.isNapalm ? '#ff2200' : '#ff6600';
-                ctx.beginPath(); ctx.arc(cx, cy, baseSize + pulse, 0, Math.PI*2); ctx.fill();
-                
-                // Innerer Kern (Gelb/Hell)
-                ctx.fillStyle = p.isNapalm ? '#ff8800' : '#ffff00';
-                ctx.beginPath(); ctx.arc(cx + (Math.random()-0.5)*4, cy + (Math.random()-0.5)*4, baseSize * 0.7, 0, Math.PI*2); ctx.fill();
+                // PHASE 2: LODERN (Hauptteil) - Pulsierend, Flammenfarben
+                const pulse = Math.sin(Date.now() / 30) * 2;
+                const baseSize = 22;
+                const inner = p.isNapalm ? '#ffaa00' : '#ffff44';
+                const outer = p.isNapalm ? '#ff2200' : '#ff6600';
+                // Innen Gelb/Orange, außen Orange/Rot, zackiger
+                drawFlame(ctx, cx, cy, baseSize + pulse, inner, outer, 0.25);
             } else {
-                // PHASE 3: ABKLINGEN (Ende)
-                // Wird kleiner, dunkler und transparenter (Rauch)
+                // PHASE 3: ABKLINGEN (Ende) - Schrumpfend, dunkel, rauchig
                 const shrink = pct * 5; // 1 -> 0
+                const inner = p.isNapalm ? '#aa4400' : '#cc6600';
+                const outer = '#333333'; // Rauchiges Dunkelgrau außen
                 ctx.globalAlpha = shrink;
-                ctx.fillStyle = '#555555';
-                ctx.beginPath(); ctx.arc(cx, cy - (1-shrink)*10, 15 * shrink, 0, Math.PI*2); ctx.fill();
+                // Schrumpft, wird dunkler und transparenter
+                drawFlame(ctx, cx, cy - (1-shrink)*5, 18 * shrink, inner, outer, 0.3);
             }
             ctx.restore();
 
@@ -330,7 +344,7 @@ export function draw(ctx, canvas) {
             ctx.fillStyle = p.color; ctx.fillRect(p.x, p.y, p.size || 4, p.size || 4);
         }
     });
-    // --------------------------------------------
+    // -----------------------------------------------------------
 
     state.players.slice().sort((a,b) => a.y - b.y).forEach(p => p.draw());
 }
