@@ -12,8 +12,6 @@ function getCachedSprite(charDef, d, isCursed) {
     const ctx = c.getContext('2d');
     ctx.translate(24, 24);
 
-    // (Hier bleibt der Character-Code unverändert, ich habe ihn gekürzt damit es übersichtlich bleibt, aber du musst den ganzen Block behalten!)
-    // --- FÜGE HIER BITTE DEN UNVERÄNDERTEN CHARACTER-CODE EIN (wie in der vorigen Version) ---
     if (charDef.id === 'lucifer') {
         const cBase = '#e62020'; const cDark = '#aa0000'; const cLite = '#ff5555'; const cHoof = '#1a0505'; 
         if (d === 'side') { ctx.fillStyle = cDark; ctx.fillRect(2, 12, 6, 10); ctx.fillStyle = cHoof; ctx.fillRect(2, 20, 6, 4); ctx.fillStyle = cBase; ctx.fillRect(-6, 12, 6, 10); ctx.fillStyle = cHoof; ctx.fillRect(-6, 20, 6, 4); } 
@@ -51,7 +49,6 @@ function getCachedSprite(charDef, d, isCursed) {
         else if (d === 'side') { ctx.fillStyle = '#005599'; ctx.fillRect(6, -20, 10, 14); ctx.fillStyle = '#fff'; ctx.fillRect(10, -17, 4, 6); ctx.fillStyle = '#000'; ctx.fillRect(12, -16, 2, 2); ctx.fillStyle = furBase; ctx.fillRect(-4, -14, 12, 26); ctx.fillStyle = furLite; ctx.fillRect(-4, -14, 12, 4); }
     }
     if (isCursed && Math.floor(Date.now()/100)%2===0) { ctx.globalCompositeOperation = 'source-atop'; ctx.fillStyle = 'rgba(255, 255, 255, 0.5)'; ctx.fillRect(-25, -35, 50, 60); ctx.globalCompositeOperation = 'source-over'; }
-    // --- CHARACTER CODE ENDE ---
 
     spriteCache[key] = c;
     return c;
@@ -109,6 +106,7 @@ export function drawItem(ctx, type, x, y) {
     }
 }
 
+// --- NEUE FLAMMEN-FUNKTIONEN ---
 function drawFlame(ctx, x, y, radius, innerColor, outerColor, jaggy = 0.2) {
     const grad = ctx.createRadialGradient(x, y, radius * 0.2, x, y, radius);
     grad.addColorStop(0, innerColor);
@@ -146,6 +144,25 @@ function drawBeam(ctx, x, y, width, colorInner, colorOuter, isEnd) {
 export function draw(ctx, canvas) {
     ctx.fillStyle = state.currentLevel.bg;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // --- NEU: HELL-BODEN TEXTUR (ASCHE) ---
+    if (state.currentLevel.id === 'hell') {
+        ctx.fillStyle = 'rgba(80, 60, 60, 0.2)'; // Graue "Asche"-Flecken
+        for (let y = 0; y < GRID_H; y++) {
+            for (let x = 0; x < GRID_W; x++) {
+                // Statisches Rauschen basierend auf Koordinaten
+                let seed = x * 37 + y * 13;
+                for (let i = 0; i < 4; i++) {
+                     seed = (seed * 9301 + 49297) % 233280;
+                     const rx = (seed % TILE_SIZE);
+                     seed = (seed * 9301 + 49297) % 233280;
+                     const ry = (seed % TILE_SIZE);
+                     ctx.fillRect(x * TILE_SIZE + rx, y * TILE_SIZE + ry, 3, 3);
+                }
+            }
+        }
+    }
+    // ---------------------------------------
 
     // --- BOOST PADS (Hell & Ice) ---
     if (state.currentLevel.id === 'hell' || state.currentLevel.id === 'ice') {
@@ -293,6 +310,7 @@ export function draw(ctx, canvas) {
 
     state.bombs.forEach(b => {
         const px = b.px; const py = b.py; 
+        
         const scale = 1 + Math.sin(Date.now() / 100) * 0.1;
         
         let baseColor = '#444444'; 
@@ -337,7 +355,9 @@ export function draw(ctx, canvas) {
             const max = p.maxLife || 100;
             const currentLife = p.life;
             const age = max - currentLife;
-            const cx = px + TILE_SIZE/2; const cy = py + TILE_SIZE/2;
+
+            const cx = px + TILE_SIZE/2;
+            const cy = py + TILE_SIZE/2;
             
             ctx.save();
 
@@ -417,4 +437,6 @@ export function draw(ctx, canvas) {
     });
 
     state.players.slice().sort((a,b) => a.y - b.y).forEach(p => p.draw());
+}
+
 }
