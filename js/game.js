@@ -144,6 +144,7 @@ window.showMenu = function() {
     initMenu();
 };
 
+// ... Input Event Listeners ...
 window.addEventListener('keydown', e => {
     if (!document.getElementById('main-menu').classList.contains('hidden')) {
         const levelKeys = Object.keys(LEVELS);
@@ -151,18 +152,21 @@ window.addEventListener('keydown', e => {
         if (state.menuState === 0) {
             if (e.code === 'ArrowLeft') { state.selectedCharIndex = (state.selectedCharIndex - 1 + CHARACTERS.length) % CHARACTERS.length; initMenu(); }
             else if (e.code === 'ArrowRight') { state.selectedCharIndex = (state.selectedCharIndex + 1) % CHARACTERS.length; initMenu(); }
-            else if (e.code === 'Enter' || e.code === 'Space') { state.menuState = 1; initMenu(); }
+            
+            // ÄNDERUNG: ArrowDown hinzugefügt für Übergang zu Level Select
+            else if (e.code === 'Enter' || e.code === 'Space' || e.code === 'ArrowDown') { state.menuState = 1; initMenu(); }
+            
         } else if (state.menuState === 1) {
             if (e.code === 'ArrowLeft') { state.selectedLevelKey = levelKeys[(currentLevelIndex - 1 + levelKeys.length) % levelKeys.length]; initMenu(); }
             else if (e.code === 'ArrowRight') { state.selectedLevelKey = levelKeys[(currentLevelIndex + 1) % levelKeys.length]; initMenu(); }
             else if (e.code === 'Enter' || e.code === 'Space') { state.menuState = 2; initMenu(); }
             
-            // --- ÄNDERUNG: ZURÜCK ZU PLAYER SELECTION ---
             else if (e.code === 'ArrowUp' || e.code === 'Escape') { state.menuState = 0; initMenu(); }
-            // --------------------------------------------
         } else if (state.menuState === 2) {
             if (e.code === 'Enter' || e.code === 'Space') window.startGame();
-            else if (e.code === 'ArrowUp') { state.menuState = 1; initMenu(); }
+            
+            // ÄNDERUNG: Escape hinzugefügt für Zurück
+            else if (e.code === 'ArrowUp' || e.code === 'Escape') { state.menuState = 1; initMenu(); }
         }
         return;
     }
