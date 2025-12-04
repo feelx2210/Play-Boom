@@ -1,22 +1,17 @@
 import { TILE_SIZE, GRID_W, GRID_H, TYPES, ITEMS, BOOST_PADS, HELL_CENTER } from './constants.js';
 import { state } from './state.js';
 
-// --- PERFORMANCE CACHE ---
 const spriteCache = {};
 
 function getCachedSprite(charDef, d, isCursed) {
     const key = `${charDef.id}_${d}_${isCursed ? 'cursed' : 'normal'}`;
-    
     if (spriteCache[key]) return spriteCache[key];
 
     const c = document.createElement('canvas');
-    c.width = 48; 
-    c.height = 48;
+    c.width = 48; c.height = 48;
     const ctx = c.getContext('2d');
-    
     ctx.translate(24, 24);
 
-    // --- MAL-LOGIK ---
     if (charDef.id === 'lucifer') {
         const cBase = '#e62020'; const cDark = '#aa0000'; const cLite = '#ff5555'; const cHoof = '#1a0505'; 
         if (d === 'side') { ctx.fillStyle = cDark; ctx.fillRect(2, 12, 6, 10); ctx.fillStyle = cHoof; ctx.fillRect(2, 20, 6, 4); ctx.fillStyle = cBase; ctx.fillRect(-6, 12, 6, 10); ctx.fillStyle = cHoof; ctx.fillRect(-6, 20, 6, 4); } 
@@ -173,7 +168,6 @@ export function draw(ctx, canvas) {
             if (item !== ITEMS.NONE && state.grid[y][x] !== TYPES.WALL_SOFT) drawItem(ctx, item, px, py);
             
             let tile = state.grid[y][x];
-            // Visual Fix: Wenn hier eine Bombe liegt, zeichne den Untergrund!
             if (tile === TYPES.BOMB) {
                 const bomb = state.bombs.find(b => b.gx === x && b.gy === y);
                 if (bomb && bomb.underlyingTile !== undefined) {
@@ -237,7 +231,6 @@ export function draw(ctx, canvas) {
         }
     }
 
-    // --- HIER WIRD DIE BOMBE GEZEICHNET ---
     state.bombs.forEach(b => {
         const px = b.px; const py = b.py; 
         
@@ -283,30 +276,61 @@ export function draw(ctx, canvas) {
         }
         // --------------------------------
     });
-    // ---------------------------------------
 
+    // --- HIER IST DIE NEUE FEUER-ZEICHEN-LOGIK ---
     state.particles.forEach(p => {
-        const px = p.gx * TILE_SIZE; const py = p.gy * TILE_SIZE;
+        const px = p.gx * TILE_SIZE;
+        const py = p.gy * TILE_SIZE;
+
         if (p.isFire) {
-            const showExplosion = !p.isNapalm || (p.isNapalm && p.life > 570);
-            if (!showExplosion) {
-                if (p.isNapalm) {
-                    ctx.fillStyle = '#cc0000'; ctx.beginPath(); ctx.moveTo(px + 10, py + 40); ctx.lineTo(px + 38, py + 40); ctx.lineTo(px + 24, py + 10); ctx.fill();
-                    ctx.fillStyle = '#ff6600'; ctx.beginPath(); ctx.moveTo(px + 14, py + 40); ctx.lineTo(px + 34, py + 40); ctx.lineTo(px + 24, py + 18); ctx.fill();
-                    ctx.fillStyle = '#ffff00'; ctx.beginPath(); ctx.moveTo(px + 18, py + 40); ctx.lineTo(px + 30, py + 40); ctx.lineTo(px + 24, py + 26); ctx.fill();
-                    if (Math.random() < 0.2) { ctx.fillStyle = '#ffffaa'; ctx.fillRect(px + 20, py + 30, 8, 4); }
-                }
+            // Prozentualer Fortschritt (1.0 = Start, 0.0 = Ende)
+            // Wir nutzen (p.maxLife || p.life) als Fallback, falls maxLife fehlt (für alte Partikel, theoretisch)
+            const max = p.maxLife || 100; 
+            const pct = p.life / max; 
+
+            const cx = px + TILE_SIZE/2;
+            const cy = py + TILE_SIZE/2;
+            
+            ctx.save();
+
+            if (pct > 0.8) { 
+                // PHASE 1: EXPLOSION (Start)
+                // Wächst schnell an, sehr hell
+                const grow = 1 - ((pct - 0.8) * 5); // 0 -> 1
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath(); ctx.arc(cx, cy, 24 * grow, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = '#ffff00';
+                ctx.beginPath(); ctx.arc(cx, cy, 18 * grow, 0, Math.PI*2); ctx.fill();
+            } else if (pct > 0.2) {
+                // PHASE 2: LODERN (Hauptteil)
+                // Pulsierendes Feuer
+                const pulse = Math.sin(Date.now() / 30) * 3;
+                const baseSize = 20;
+                
+                // Äußerer Schein (Orange)
+                ctx.fillStyle = p.isNapalm ? '#ff2200' : '#ff6600';
+                ctx.beginPath(); ctx.arc(cx, cy, baseSize + pulse, 0, Math.PI*2); ctx.fill();
+                
+                // Innerer Kern (Gelb/Hell)
+                ctx.fillStyle = p.isNapalm ? '#ff8800' : '#ffff00';
+                ctx.beginPath(); ctx.arc(cx + (Math.random()-0.5)*4, cy + (Math.random()-0.5)*4, baseSize * 0.7, 0, Math.PI*2); ctx.fill();
             } else {
-                ctx.fillStyle = '#ffaa00'; ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
-                ctx.fillStyle = '#ffff00'; ctx.fillRect(px + 4, py + 4, TILE_SIZE - 8, TILE_SIZE - 8);
-                ctx.fillStyle = '#ffffff'; ctx.fillRect(px + 10, py + 10, TILE_SIZE - 20, TILE_SIZE - 20);
+                // PHASE 3: ABKLINGEN (Ende)
+                // Wird kleiner, dunkler und transparenter (Rauch)
+                const shrink = pct * 5; // 1 -> 0
+                ctx.globalAlpha = shrink;
+                ctx.fillStyle = '#555555';
+                ctx.beginPath(); ctx.arc(cx, cy - (1-shrink)*10, 15 * shrink, 0, Math.PI*2); ctx.fill();
             }
+            ctx.restore();
+
         } else if (p.text) {
             ctx.fillStyle = p.color; ctx.font = '10px "Press Start 2P"'; ctx.fillText(p.text, p.x, p.y);
         } else {
             ctx.fillStyle = p.color; ctx.fillRect(p.x, p.y, p.size || 4, p.size || 4);
         }
     });
+    // --------------------------------------------
 
     state.players.slice().sort((a,b) => a.y - b.y).forEach(p => p.draw());
 }
