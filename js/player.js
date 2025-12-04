@@ -21,7 +21,11 @@ export class Player {
         this.alive = true;
         this.invincibleTimer = 0;
         this.fireTimer = 0;
-        this.speed = 3; // SPEED UP: 2 -> 3
+        
+        // HIER: Dezimalwerte sind erlaubt! 
+        // 2.5 ist ein guter Mittelweg. Versuch auch 1.5 oder 2.2
+        this.speed = 1.75; 
+        
         this.maxBombs = 1;
         this.activeBombs = 0;
         this.bombRange = 1;
@@ -229,7 +233,7 @@ export class Player {
             owner: this,
             gx: gx, gy: gy,
             px: gx * TILE_SIZE, py: gy * TILE_SIZE,
-            timer: 160, // TIMER REDUCED: 180 -> 160
+            timer: 160, 
             range: this.bombRange, 
             napalm: isNapalm,
             isRolling: isRolling,
