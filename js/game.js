@@ -121,11 +121,22 @@ function distributeItems() {
     });
 }
 
+// --- HIER IST DIE ÄNDERUNG ---
 window.togglePause = function() {
-    if (state.isGameOver || !document.getElementById('main-menu').classList.contains('hidden')) return;
+    // 1. Wenn Game Over ist, bringt das X zurück zum Menü
+    if (state.isGameOver) {
+        window.showMenu();
+        return;
+    }
+
+    // 2. Wenn wir im Hauptmenü sind, passiert nichts
+    if (!document.getElementById('main-menu').classList.contains('hidden')) return;
+
+    // 3. Im normalen Spiel: Pause umschalten
     state.isPaused = !state.isPaused;
     document.getElementById('pause-menu').classList.toggle('hidden', !state.isPaused);
 };
+// -----------------------------
 
 window.quitGame = function() {
     state.isPaused = false;
@@ -276,10 +287,9 @@ function triggerHellFire() {
     });
 }
 
-// --- HIER IST DIE GEÄNDERTE EXPLODE FUNKTION ---
 function explodeBomb(b) {
     b.owner.activeBombs--; 
-    // Grid wiederherstellen (Wasser, Brücke oder Leer)
+    // RESTORE GRID (Benutze underlyingTile wenn vorhanden, sonst EMPTY)
     if (!b.isRolling) {
         state.grid[b.gy][b.gx] = (b.underlyingTile !== undefined) ? b.underlyingTile : TYPES.EMPTY;
     }
@@ -287,7 +297,7 @@ function explodeBomb(b) {
     const isBoostPad = state.currentLevel.id !== 'stone' && BOOST_PADS.some(p => p.x === b.gx && p.y === b.gy);
     const range = isBoostPad ? 15 : b.range; 
     
-    // Prüfen, ob die Bombe selbst auf Wasser liegt
+    // CENTER CHECK: Wenn auf Wasser, KEIN Napalm (nur Standard Explosion)
     let centerNapalm = b.napalm;
     let centerDuration = b.napalm ? 600 : 30;
     if (b.underlyingTile === TYPES.WATER) {
@@ -297,7 +307,6 @@ function explodeBomb(b) {
 
     destroyItem(b.gx, b.gy); 
     extinguishNapalm(b.gx, b.gy); 
-    // Hier war der Tippfehler 'centerIsNapalm' -> 'centerNapalm'
     createFire(b.gx, b.gy, centerDuration, centerNapalm);
     
     const dirs = [{x:0, y:-1}, {x:0, y:1}, {x:-1, y:0}, {x:1, y:0}];
@@ -307,7 +316,7 @@ function explodeBomb(b) {
             if (tx < 0 || tx >= GRID_W || ty < 0 || ty >= GRID_H) break;
             const tile = state.grid[ty][tx];
             
-            // Prüfen, ob das Zielfeld Wasser ist -> Dann kein Napalm
+            // TILE CHECK: Prüfe Untergrund für das Feuer
             let tileNapalm = b.napalm;
             let tileDuration = b.napalm ? 600 : 30;
             if (tile === TYPES.WATER) {
@@ -329,7 +338,6 @@ function explodeBomb(b) {
         }
     });
 }
-// -----------------------------------------------
 
 function extinguishNapalm(gx, gy) { state.particles.forEach(p => { if (p.isFire && p.isNapalm && p.gx === gx && p.gy === gy) p.life = 0; }); }
 function destroyItem(x, y) { if (state.items[y][x] !== ITEMS.NONE) { state.items[y][x] = ITEMS.NONE; createFloatingText(x * TILE_SIZE, y * TILE_SIZE, "ASHES", "#555555"); for(let i=0; i<5; i++) state.particles.push({ x: x * TILE_SIZE + TILE_SIZE/2, y: y * TILE_SIZE + TILE_SIZE/2, vx: (Math.random()-0.5)*2, vy: (Math.random()-0.5)*2, life: 30, color: '#333333', size: Math.random()*3 }); } }
