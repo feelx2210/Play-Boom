@@ -222,13 +222,15 @@ export class Player {
         const gy = Math.round(this.y / TILE_SIZE);
         const tile = state.grid[gy][gx];
 
-        // LOGIK UPDATE: Auf Water/Bridge im Jungle erlaubt
+        // --- HIER IST DIE ÄNDERUNG ---
+        // Prüfen, ob wir im Jungle sind. Wenn ja, erlauben wir Wasser/Brücken.
         let canPlant = (tile === TYPES.EMPTY);
         if (state.currentLevel.id === 'jungle') {
             if (tile === TYPES.WATER || tile === TYPES.BRIDGE) canPlant = true;
         }
 
         if (!canPlant) return; 
+        // -----------------------------
 
         let isRolling = (this.currentBombMode === BOMB_MODES.ROLLING);
         let isNapalm = (this.currentBombMode === BOMB_MODES.NAPALM);
@@ -242,7 +244,7 @@ export class Player {
             napalm: isNapalm,
             isRolling: isRolling,
             isBlue: isRolling, 
-            // WICHTIG: Wir merken uns, was unter der Bombe war (Wasser, Brücke, Leer)
+            // Speichern, was unter der Bombe liegt, um es später wiederherzustellen
             underlyingTile: tile,
             walkableIds: state.players.filter(p => {
                 const pGx = Math.round(p.x / TILE_SIZE);
