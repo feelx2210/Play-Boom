@@ -175,7 +175,7 @@ function update() {
     if (state.isGameOver) return;
     state.players.forEach(p => p.inFire = false);
 
-    // Hellfire Logic (Safe)
+    // Hellfire Logic
     if (state.currentLevel.hasCentralFire) {
         if (!state.hellFireActive) {
             if (state.particles.some(p => p.isFire && p.gx === HELL_CENTER.x && p.gy === HELL_CENTER.y)) {
@@ -184,8 +184,9 @@ function update() {
             }
         } else {
             state.hellFireTimer++;
-            if (state.hellFirePhase === 'IDLE' && state.hellFireTimer >= 1800) { state.hellFireTimer = 0; state.hellFirePhase = 'WARNING'; createFloatingText(HELL_CENTER.x * TILE_SIZE, HELL_CENTER.y * TILE_SIZE, "!", "#ff0000"); }
-            else if (state.hellFirePhase === 'WARNING' && state.hellFireTimer >= 180) { state.hellFireTimer = 0; state.hellFirePhase = 'IDLE'; triggerHellFire(); }
+            // SLOWER HELLFIRE PHASES
+            if (state.hellFirePhase === 'IDLE' && state.hellFireTimer >= 2200) { state.hellFireTimer = 0; state.hellFirePhase = 'WARNING'; createFloatingText(HELL_CENTER.x * TILE_SIZE, HELL_CENTER.y * TILE_SIZE, "!", "#ff0000"); }
+            else if (state.hellFirePhase === 'WARNING' && state.hellFireTimer >= 225) { state.hellFireTimer = 0; state.hellFirePhase = 'IDLE'; triggerHellFire(); }
         }
     }
 
@@ -282,10 +283,10 @@ function explodeBomb(b) {
     const range = isBoostPad ? 15 : b.range; 
     
     let centerNapalm = b.napalm;
-    let centerDuration = b.napalm ? 600 : 30;
+    let centerDuration = b.napalm ? 750 : 40; // LONGER DURATION (was 600 / 30)
     if (b.underlyingTile === TYPES.WATER) {
         centerNapalm = false;
-        centerDuration = 30;
+        centerDuration = 40;
     }
 
     destroyItem(b.gx, b.gy); 
@@ -300,10 +301,10 @@ function explodeBomb(b) {
             const tile = state.grid[ty][tx];
             
             let tileNapalm = b.napalm;
-            let tileDuration = b.napalm ? 600 : 30;
+            let tileDuration = b.napalm ? 750 : 40; // LONGER DURATION
             if (tile === TYPES.WATER) {
                 tileNapalm = false;
-                tileDuration = 30;
+                tileDuration = 40;
             }
 
             if (tile === TYPES.WALL_HARD) break;
