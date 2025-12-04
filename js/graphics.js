@@ -1,22 +1,17 @@
 import { TILE_SIZE, GRID_W, GRID_H, TYPES, ITEMS, BOOST_PADS, OIL_PADS, HELL_CENTER } from './constants.js';
 import { state } from './state.js';
 
-// --- PERFORMANCE CACHE ---
 const spriteCache = {};
 
 function getCachedSprite(charDef, d, isCursed) {
     const key = `${charDef.id}_${d}_${isCursed ? 'cursed' : 'normal'}`;
-    
     if (spriteCache[key]) return spriteCache[key];
 
     const c = document.createElement('canvas');
-    c.width = 48; 
-    c.height = 48;
+    c.width = 48; c.height = 48;
     const ctx = c.getContext('2d');
-    
     ctx.translate(24, 24);
 
-    // --- MAL-LOGIK ---
     if (charDef.id === 'lucifer') {
         const cBase = '#e62020'; const cDark = '#aa0000'; const cLite = '#ff5555'; const cHoof = '#1a0505'; 
         if (d === 'side') { ctx.fillStyle = cDark; ctx.fillRect(2, 12, 6, 10); ctx.fillStyle = cHoof; ctx.fillRect(2, 20, 6, 4); ctx.fillStyle = cBase; ctx.fillRect(-6, 12, 6, 10); ctx.fillStyle = cHoof; ctx.fillRect(-6, 20, 6, 4); } 
@@ -28,8 +23,7 @@ function getCachedSprite(charDef, d, isCursed) {
         if (d === 'front') { ctx.fillStyle = cBase; ctx.beginPath(); ctx.moveTo(-10, -20); ctx.lineTo(-16, -24); ctx.lineTo(-10, -16); ctx.fill(); ctx.beginPath(); ctx.moveTo(10, -20); ctx.lineTo(16, -24); ctx.lineTo(10, -16); ctx.fill(); ctx.fillStyle = hornGrad; ctx.beginPath(); ctx.moveTo(-7, -24); ctx.quadraticCurveTo(-18, -30, -14, -38); ctx.lineTo(-5, -26); ctx.fill(); ctx.beginPath(); ctx.moveTo(7, -24); ctx.quadraticCurveTo(18, -30, 14, -38); ctx.lineTo(5, -26); ctx.fill(); ctx.fillStyle = '#ffff00'; ctx.fillRect(-8, -20, 5, 4); ctx.fillRect(3, -20, 5, 4); ctx.fillStyle = '#000'; ctx.fillRect(-6, -19, 2, 2); ctx.fillRect(5, -19, 2, 2); ctx.fillStyle = cDark; ctx.fillRect(-2, -16, 4, 2); ctx.fillStyle = '#440000'; ctx.beginPath(); ctx.moveTo(-6, -10); ctx.quadraticCurveTo(0, -6, 6, -10); ctx.lineTo(0, -8); ctx.fill(); ctx.fillStyle = '#fff'; ctx.fillRect(-5, -10, 2, 2); ctx.fillRect(3, -10, 2, 2); ctx.fillStyle = cBase; ctx.fillRect(-14, -16, 5, 18); ctx.fillRect(9, -16, 5, 18); ctx.fillStyle = cDark; ctx.fillRect(-14, -2, 5, 4); ctx.fillRect(9, -2, 5, 4); } 
         else if (d === 'back') { ctx.fillStyle = cDark; ctx.fillRect(-4, -18, 8, 30); ctx.fillStyle = '#ddd'; ctx.beginPath(); ctx.moveTo(-7, -24); ctx.quadraticCurveTo(-18, -30, -14, -38); ctx.lineTo(-5, -26); ctx.fill(); ctx.beginPath(); ctx.moveTo(7, -24); ctx.quadraticCurveTo(18, -30, 14, -38); ctx.lineTo(5, -26); ctx.fill(); ctx.strokeStyle = '#aa0000'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(0, 8); ctx.quadraticCurveTo(16, 22, 8, 30); ctx.stroke(); ctx.fillStyle = '#aa0000'; ctx.beginPath(); ctx.moveTo(8, 30); ctx.lineTo(12, 34); ctx.lineTo(4, 34); ctx.fill(); ctx.fillStyle = cBase; ctx.fillRect(-14, -16, 5, 18); ctx.fillRect(9, -16, 5, 18); } 
         else if (d === 'side') { ctx.fillStyle = hornGrad; ctx.beginPath(); ctx.moveTo(2, -24); ctx.quadraticCurveTo(10, -30, 12, -38); ctx.lineTo(8, -24); ctx.fill(); ctx.fillStyle = '#ffff00'; ctx.fillRect(4, -19, 4, 4); ctx.fillStyle = cDark; ctx.fillRect(8, -16, 4, 2); ctx.fillStyle = cBase; ctx.fillRect(0, -12, 5, 16); ctx.fillStyle = cDark; ctx.fillRect(0, 0, 6, 4); ctx.strokeStyle = '#aa0000'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(-8, 8); ctx.quadraticCurveTo(-16, 20, -12, 26); ctx.stroke(); }
-    } 
-    else if (charDef.id === 'rambo') {
+    } else if (charDef.id === 'rambo') {
         const cGreen = '#226622'; const cDarkG = '#113311'; const cLiteG = '#448844'; const cSkin  = '#ffccaa'; const cSkinS = '#ddaa88'; const cBandana = '#dd0000';
         ctx.fillStyle = cGreen; if (d === 'side') { ctx.fillRect(-5, 12, 8, 8); ctx.fillStyle = '#111'; ctx.fillRect(-5, 20, 9, 4); } else { ctx.fillRect(-10, 12, 8, 8); ctx.fillRect(2, 12, 8, 8); ctx.fillStyle = '#111'; ctx.fillRect(-10, 20, 8, 4); ctx.fillRect(2, 20, 8, 4); }
         const bodyGrad = ctx.createLinearGradient(0, -20, 0, 12); bodyGrad.addColorStop(0, '#448844'); bodyGrad.addColorStop(1, '#225522'); ctx.fillStyle = bodyGrad; ctx.fillRect(-12, -20, 24, 32);
@@ -55,6 +49,7 @@ function getCachedSprite(charDef, d, isCursed) {
         else if (d === 'side') { ctx.fillStyle = '#005599'; ctx.fillRect(6, -20, 10, 14); ctx.fillStyle = '#fff'; ctx.fillRect(10, -17, 4, 6); ctx.fillStyle = '#000'; ctx.fillRect(12, -16, 2, 2); ctx.fillStyle = furBase; ctx.fillRect(-4, -14, 12, 26); ctx.fillStyle = furLite; ctx.fillRect(-4, -14, 12, 4); }
     }
     if (isCursed && Math.floor(Date.now()/100)%2===0) { ctx.globalCompositeOperation = 'source-atop'; ctx.fillStyle = 'rgba(255, 255, 255, 0.5)'; ctx.fillRect(-25, -35, 50, 60); ctx.globalCompositeOperation = 'source-over'; }
+    // --- END OF DRAWING CODE ---
 
     spriteCache[key] = c;
     return c;
@@ -112,7 +107,6 @@ export function drawItem(ctx, type, x, y) {
     }
 }
 
-// --- NEUE FLAMMEN-FUNKTIONEN ---
 function drawFlame(ctx, x, y, radius, innerColor, outerColor, jaggy = 0.2) {
     const grad = ctx.createRadialGradient(x, y, radius * 0.2, x, y, radius);
     grad.addColorStop(0, innerColor);
@@ -315,48 +309,16 @@ export function draw(ctx, canvas) {
     }
 
     state.bombs.forEach(b => {
-        const px = b.px; const py = b.py; 
-        const scale = 1 + Math.sin(Date.now() / 100) * 0.1;
-        
-        let baseColor = '#444444'; 
-        if (state.currentLevel.id === 'jungle') baseColor = '#000000';
-        
-        ctx.fillStyle = b.napalm ? '#dd0000' : baseColor; 
-        if (b.isBlue) ctx.fillStyle = '#6666ff';
-        
-        ctx.beginPath(); 
-        ctx.arc(px + TILE_SIZE/2, py + TILE_SIZE/2, 16 * scale, 0, Math.PI * 2); 
-        ctx.fill();
-        
-        const tipX = px + TILE_SIZE/2 + 12 * scale; 
-        const tipY = py + TILE_SIZE/2 - 14 * scale;
-        
-        ctx.strokeStyle = '#aaaaaa'; 
-        ctx.lineWidth = 2; 
-        ctx.beginPath(); 
-        ctx.moveTo(px + TILE_SIZE/2 + 6, py + TILE_SIZE/2 - 6); 
-        ctx.lineTo(tipX, tipY); 
-        ctx.stroke();
-        
-        ctx.fillStyle = Math.random() > 0.5 ? '#ffff00' : '#ff4400';
-        ctx.beginPath(); 
-        ctx.arc(tipX, tipY, 3 + Math.random()*2, 0, Math.PI*2); 
-        ctx.fill();
-
-        for(let j=0; j<3; j++) {
-            const angle = Math.random() * Math.PI * 2;
-            const dist = 2 + Math.random() * 6;
-            ctx.fillStyle = '#ffffff';
-            ctx.globalAlpha = 0.8;
-            ctx.fillRect(tipX + Math.cos(angle)*dist, tipY + Math.sin(angle)*dist, 2, 2);
-            ctx.globalAlpha = 1.0;
-        }
+        const px = b.px; const py = b.py; const scale = 1 + Math.sin(Date.now() / 100) * 0.1;
+        let baseColor = '#444444'; if (state.currentLevel.id === 'jungle') baseColor = '#000000';
+        ctx.fillStyle = b.napalm ? '#dd0000' : baseColor; if (b.isBlue) ctx.fillStyle = '#6666ff';
+        ctx.beginPath(); ctx.arc(px + TILE_SIZE/2, py + TILE_SIZE/2, 16 * scale, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = '#aaaaaa'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(px + TILE_SIZE/2 + 8, py + TILE_SIZE/2 - 8); ctx.lineTo(px + TILE_SIZE/2 + 12, py + TILE_SIZE/2 - 14); ctx.stroke();
+        ctx.fillStyle = 'orange'; ctx.beginPath(); ctx.arc(px + TILE_SIZE/2 + 12, py + TILE_SIZE/2 - 14, 3, 0, Math.PI*2); ctx.fill();
     });
 
-    // --- ZEICHNEN DES FEUERS MIT NEUER ZEITBASIERTER LOGIK ---
     state.particles.forEach(p => {
-        const px = p.gx * TILE_SIZE;
-        const py = p.gy * TILE_SIZE;
+        const px = p.gx * TILE_SIZE; const py = p.gy * TILE_SIZE;
 
         if (p.isFire) {
             const max = p.maxLife || 100;
@@ -369,20 +331,17 @@ export function draw(ctx, canvas) {
             ctx.save();
 
             const explosionDuration = 120;
-
             if (age < 15) {
-                // PHASE 1: EXPLOSION (Start)
                 const grow = age / 15;
-                // Radius reduziert auf ca 18 (x2 = 36 = 75% von 48)
                 drawFlame(ctx, cx, cy, 18 * grow, '#ffffff', '#ffff00', 0.1);
             } 
             else if (age < explosionDuration) {
-                // PHASE 2: LODERN
                 const pulse = Math.sin(Date.now() / 30) * 2;
-                // Basisgröße reduziert: war 22, jetzt 16 (32px Durchmesser)
                 const baseSize = 16; 
-                const inner = p.isNapalm ? '#ffaa00' : '#ffff44';
-                const outer = p.isNapalm ? '#ff2200' : '#ff6600';
+                // --- CHECK FÜR ÖL-FEUER ---
+                const isOil = p.isOilFire;
+                const inner = isOil ? '#ff5500' : (p.isNapalm ? '#ffaa00' : '#ffff44');
+                const outer = isOil ? '#000000' : (p.isNapalm ? '#ff2200' : '#ff6600');
 
                 if (p.type === 'center') {
                     drawFlame(ctx, cx, cy, baseSize + pulse, inner, outer, 0.2);
@@ -396,42 +355,29 @@ export function draw(ctx, canvas) {
                     }
                     ctx.translate(cx, cy);
                     ctx.rotate(angle);
-                    
-                    // Strahlbreite reduziert: war 40, jetzt 36 (75%)
                     const beamWidth = 36 + Math.sin(Date.now()/40)*3; 
                     drawBeam(ctx, 0, 0, beamWidth, inner, outer, p.type === 'end');
                 }
             } 
             else {
-                // PHASE 3: GLUT (Ende) - Sizzling Napalm
-                
-                // Fortschritt der Glut-Phase
+                // PHASE 3: GLUT (Napalm oder Öl)
                 const emberDuration = max - explosionDuration;
                 let emberProgress = 0;
                 if (emberDuration > 0) emberProgress = (age - explosionDuration) / emberDuration;
                 
-                // Brutzel-Effekt: Zufälliges Wackeln
                 const jitter = (Math.random() - 0.5) * 3; 
-                
-                // Pulsierendes Glühen
                 const pulse = Math.sin(Date.now() / 50) * 2; 
+                
+                const isOil = p.isOilFire;
+                const inner = isOil ? '#aa3300' : '#ffcc00'; 
+                const outer = isOil ? '#111111' : '#cc2200';
 
-                // Farben: Heißes Gelb/Orange innen, Rot außen
-                const inner = '#ffcc00'; 
-                const outer = '#cc2200';
-
-                // Erst ganz am Ende ausblenden (letzte 10%)
-                if (emberProgress > 0.9) {
-                    ctx.globalAlpha = 1 - ((emberProgress - 0.9) * 10);
-                } else {
-                    ctx.globalAlpha = 1.0;
-                }
+                if (emberProgress > 0.9) ctx.globalAlpha = 1 - ((emberProgress - 0.9) * 10);
+                else ctx.globalAlpha = 1.0;
 
                 if (p.type === 'center') {
-                    // Zentrum: Ein pulsierender Feuerball
                     drawFlame(ctx, cx, cy, 18 + pulse + jitter, inner, outer, 0.3);
                 } else {
-                    // Strahl: Auch als "lodernde Masse" darstellen
                     let angle = 0;
                     if (p.dir) {
                         if (p.dir.x === 0 && p.dir.y === -1) angle = -Math.PI/2;
@@ -441,12 +387,8 @@ export function draw(ctx, canvas) {
                     }
                     ctx.translate(cx, cy);
                     ctx.rotate(angle);
-                    
-                    // Breite variiert stark für den "Brutzel"-Look
                     const beamWidth = 32 + pulse + jitter;
                     drawBeam(ctx, 0, 0, beamWidth, inner, outer, p.type === 'end');
-
-                    // Extra Hitze-Partikel (kleine gelbe Punkte)
                     if (Math.random() < 0.4) {
                          ctx.fillStyle = '#ffffaa';
                          const px = (Math.random() - 0.5) * 40;
@@ -456,7 +398,6 @@ export function draw(ctx, canvas) {
                 }
             }
             ctx.restore();
-
         } else if (p.text) {
             ctx.fillStyle = p.color; ctx.font = '10px "Press Start 2P"'; ctx.fillText(p.text, p.x, p.y);
         } else {
@@ -466,9 +407,4 @@ export function draw(ctx, canvas) {
 
     state.players.slice().sort((a,b) => a.y - b.y).forEach(p => p.draw());
 }
-
 }
-
-{
-type: uploaded file
-fileName: image_66c1ad.png
