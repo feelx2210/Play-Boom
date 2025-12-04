@@ -1,8 +1,9 @@
-import { TILE_SIZE, GRID_W, GRID_H, TYPES, ITEMS, LEVELS, CHARACTERS, BOOST_PADS, OIL_PADS, HELL_CENTER, keyBindings } from './constants.js';
+import { TILE_SIZE, GRID_W, GRID_H, TYPES, ITEMS, LEVELS, CHARACTERS, BOOST_PADS, OIL_PADS, HELL_CENTER } from './constants.js';
 import { state } from './state.js';
-import { createFloatingText, isSolid } from './utils.js';
-import { draw, drawLevelPreview, drawCharacterSprite } from './graphics.js';
+import { createFloatingText } from './utils.js';
+import { draw } from './graphics.js';
 import { Player } from './player.js';
+import { endGame, showMenu } from './ui.js';
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
@@ -11,55 +12,9 @@ canvas.height = GRID_H * TILE_SIZE;
 
 let gameLoopId;
 
-// --- MENU LOGIC ---
-function initMenu() {
-    const charContainer = document.getElementById('char-select');
-    charContainer.innerHTML = '';
-    const levelContainer = document.getElementById('level-select');
-    levelContainer.innerHTML = '';
-    
-    if (state.menuState === 0) {
-        charContainer.classList.add('active-group'); charContainer.classList.remove('inactive-group');
-        levelContainer.classList.add('inactive-group'); levelContainer.classList.remove('active-group');
-        document.getElementById('start-game-btn').classList.remove('focused');
-    } else if (state.menuState === 1) {
-        charContainer.classList.add('inactive-group'); charContainer.classList.remove('active-group');
-        levelContainer.classList.add('active-group'); levelContainer.classList.remove('inactive-group');
-        document.getElementById('start-game-btn').classList.remove('focused');
-    } else if (state.menuState === 2) {
-        charContainer.classList.add('inactive-group'); levelContainer.classList.add('inactive-group');
-        document.getElementById('start-game-btn').classList.add('focused');
-    }
-
-    CHARACTERS.forEach((char, index) => {
-        const div = document.createElement('div');
-        div.className = `option-card ${index === state.selectedCharIndex ? 'selected' : ''}`;
-        div.onclick = () => { state.menuState = 0; state.selectedCharIndex = index; initMenu(); };
-        const pCanvas = document.createElement('canvas'); pCanvas.width=48; pCanvas.height=48; pCanvas.className='preview-canvas';
-        drawCharacterSprite(pCanvas.getContext('2d'), 24, 36, char);
-        div.appendChild(pCanvas);
-        const label = document.createElement('div'); label.className = 'card-label'; label.innerText = char.name;
-        div.appendChild(label);
-        charContainer.appendChild(div);
-    });
-
-    Object.keys(LEVELS).forEach((key) => {
-        const lvl = LEVELS[key];
-        const div = document.createElement('div');
-        const isSelected = key === state.selectedLevelKey;
-        div.className = `option-card ${isSelected ? 'selected' : ''}`;
-        div.onclick = () => { state.menuState = 1; state.selectedLevelKey = key; initMenu(); };
-        const lCanvas = document.createElement('canvas'); lCanvas.width=48; lCanvas.height=48; lCanvas.className='preview-canvas';
-        drawLevelPreview(lCanvas.getContext('2d'), 48, 48, lvl);
-        div.appendChild(lCanvas);
-        const label = document.createElement('div'); label.className = 'card-label'; label.innerText = lvl.name;
-        div.appendChild(label);
-        levelContainer.appendChild(div);
-    });
-}
-
-// Global functions
-window.startGame = function() {
+// --- SPIEL STARTEN ---
+function startGame() {
+    // UI-Elemente umschalten (via DOM, da UI-Logik hier simpel ist)
     document.getElementById('main-menu').classList.add('hidden');
     document.getElementById('game-over').classList.add('hidden');
     document.getElementById('ui-layer').classList.remove('hidden');
@@ -68,58 +23,95 @@ window.startGame = function() {
     const userChar = CHARACTERS[state.selectedCharIndex];
     state.currentLevel = LEVELS[state.selectedLevelKey];
     
+    // Style Anpassungen für Level
     const container = document.getElementById('game-container');
     container.style.boxShadow = `0 0 20px ${state.currentLevel.glow}`;
     container.style.borderColor = state.currentLevel.border;
     document.getElementById('p1-name').innerText = userChar.name.toUpperCase();
 
-    state.grid = []; state.items = []; state.bombs = []; state.particles = []; state.players = [];
-    state.isGameOver = false; state.isPaused = false;
-    state.hellFireTimer = 0; state.hellFirePhase = 'IDLE'; state.hellFireActive = false;
+    // State Reset
+    state.grid = []; 
+    state.items = []; 
+    state.bombs = []; 
+    state.particles = []; 
+    state.players = [];
+    state.isGameOver = false; 
+    state.isPaused = false;
+    state.hellFireTimer = 0; 
+    state.hellFirePhase = 'IDLE'; 
+    state.hellFireActive = false; 
 
+    // Grid generieren
     for (let y = 0; y < GRID_H; y++) {
         let row = []; let itemRow = [];
         for (let x = 0; x < GRID_W; x++) {
-            if (x === 0 || x === GRID_W - 1 || y === 0 || y === GRID_H - 1) row.push(TYPES.WALL_HARD);
-            else if (state.currentLevel.id === 'jungle' && y === 7 && (x === 3 || x === 7 || x === 11)) row.push(TYPES.BRIDGE);
-            else if (state.currentLevel.id === 'jungle' && y === 7) row.push(TYPES.WATER);
-            else if (x % 2 === 0 && y % 2 === 0) row.push(TYPES.WALL_HARD);
-            else if ((state.currentLevel.id === 'hell' || state.currentLevel.id === 'ice') && BOOST_PADS.some(p => p.x === x && p.y === y)) row.push(TYPES.EMPTY); 
-            else if (Math.random() < 0.7) row.push(TYPES.WALL_SOFT);
-            else row.push(TYPES.EMPTY);
+            // Harte Wände am Rand und im Raster
+            if (x === 0 || x === GRID_W - 1 || y === 0 || y === GRID_H - 1) {
+                row.push(TYPES.WALL_HARD);
+            } else if (x % 2 === 0 && y % 2 === 0) {
+                row.push(TYPES.WALL_HARD);
+            } 
+            // Jungle Specials: Wasser & Brücken
+            else if (state.currentLevel.id === 'jungle' && y === 7) {
+                if (x === 3 || x === 7 || x === 11) row.push(TYPES.BRIDGE);
+                else row.push(TYPES.WATER);
+            }
+            // Hell/Ice: Boost Pads (Feld muss leer sein)
+            else if ((state.currentLevel.id === 'hell' || state.currentLevel.id === 'ice') && BOOST_PADS.some(p => p.x === x && p.y === y)) {
+                row.push(TYPES.EMPTY);
+            }
+            // Zufällige Soft Walls
+            else if (Math.random() < 0.7) {
+                row.push(TYPES.WALL_SOFT);
+            } else {
+                row.push(TYPES.EMPTY);
+            }
             itemRow.push(ITEMS.NONE);
         }
-        state.grid.push(row); state.items.push(itemRow);
+        state.grid.push(row); 
+        state.items.push(itemRow);
     }
 
-    // --- NEU: ÖLFELDER INITIALISIEREN (nur HELL) ---
+    // Hell: Ölfelder initialisieren (überschreibt leere Felder)
     if (state.currentLevel.id === 'hell') {
         OIL_PADS.forEach(oil => {
-            // Wir setzen TYPES.OIL nur dort, wo keine harte Wand und keine Soft Wall ist
-            // (oder wir überschreiben Soft Walls, je nach Wunsch. Hier: Nur leere Felder werden zu Öl)
             if (state.grid[oil.y][oil.x] === TYPES.EMPTY) {
                 state.grid[oil.y][oil.x] = TYPES.OIL;
             }
         });
     }
-    // -----------------------------------------------
 
+    // Ecken freiräumen für Spieler
     const corners = [{x: 1, y: 1}, {x: 1, y: 2}, {x: 2, y: 1}, {x: GRID_W-2, y: 1}, {x: GRID_W-2, y: 2}, {x: GRID_W-3, y: 1}, {x: 1, y: GRID_H-2}, {x: 1, y: GRID_H-3}, {x: 2, y: GRID_H-2}, {x: GRID_W-2, y: GRID_H-2}, {x: GRID_W-3, y: GRID_H-2}, {x: GRID_W-2, y: GRID_H-3}];
-    if (state.currentLevel.id === 'jungle') for(let x=1; x<GRID_W-1; x++) state.items[7][x] = ITEMS.NONE; 
     corners.forEach(p => state.grid[p.y][p.x] = TYPES.EMPTY);
-    if (state.currentLevel.hasCentralFire) { state.grid[HELL_CENTER.y][HELL_CENTER.x] = TYPES.EMPTY; state.items[HELL_CENTER.y][HELL_CENTER.x] = ITEMS.NONE; }
+    
+    // Jungle: Mittlere Reihe items bereinigen
+    if (state.currentLevel.id === 'jungle') for(let x=1; x<GRID_W-1; x++) state.items[7][x] = ITEMS.NONE; 
+    
+    // Hell: Zentrum freimachen
+    if (state.currentLevel.hasCentralFire) { 
+        state.grid[HELL_CENTER.y][HELL_CENTER.x] = TYPES.EMPTY; 
+        state.items[HELL_CENTER.y][HELL_CENTER.x] = ITEMS.NONE; 
+    }
 
     distributeItems();
 
-    state.players.push(new Player(1, 1, 1, userChar, false));
+    // Spieler erstellen
+    state.players.push(new Player(1, 1, 1, userChar, false)); // P1
     const availableChars = CHARACTERS.filter(c => c.id !== userChar.id);
-    state.players.push(new Player(2, GRID_W-2, GRID_H-2, availableChars[0] || CHARACTERS[1], true));
-    state.players.push(new Player(3, GRID_W-2, 1, availableChars[1] || CHARACTERS[2], true));
-    state.players.push(new Player(4, 1, GRID_H-2, availableChars[2] || CHARACTERS[3], true));
+    state.players.push(new Player(2, GRID_W-2, GRID_H-2, availableChars[0] || CHARACTERS[1], true)); // Bot 1
+    state.players.push(new Player(3, GRID_W-2, 1, availableChars[1] || CHARACTERS[2], true));       // Bot 2
+    state.players.push(new Player(4, 1, GRID_H-2, availableChars[2] || CHARACTERS[3], true));       // Bot 3
 
     document.getElementById('bomb-type').innerText = '⚫';
+    
+    // Game Loop starten
+    if (gameLoopId) cancelAnimationFrame(gameLoopId);
     gameLoopId = requestAnimationFrame(gameLoop);
-};
+}
+// Global verfügbar machen für UI
+window.startGame = startGame;
+
 
 function distributeItems() {
     let softWalls = [];
@@ -132,63 +124,12 @@ function distributeItems() {
     });
 }
 
-window.togglePause = function() {
-    if (state.isGameOver) { window.showMenu(); return; }
-    if (!document.getElementById('main-menu').classList.contains('hidden')) return;
-    state.isPaused = !state.isPaused;
-    document.getElementById('pause-menu').classList.toggle('hidden', !state.isPaused);
-};
-
-window.quitGame = function() {
-    state.isPaused = false;
-    document.getElementById('pause-menu').classList.add('hidden');
-    window.showMenu();
-};
-
-window.showMenu = function() {
-    cancelAnimationFrame(gameLoopId);
-    document.getElementById('main-menu').classList.remove('hidden');
-    document.getElementById('game-over').classList.add('hidden');
-    document.getElementById('ui-layer').classList.add('hidden');
-    document.getElementById('pause-btn').classList.add('hidden'); 
-    document.getElementById('pause-menu').classList.add('hidden'); 
-    document.getElementById('controls-menu').classList.add('hidden');
-    state.menuState = 0;
-    initMenu();
-};
-
-window.addEventListener('keydown', e => {
-    if (!document.getElementById('main-menu').classList.contains('hidden')) {
-        const levelKeys = Object.keys(LEVELS);
-        const currentLevelIndex = levelKeys.indexOf(state.selectedLevelKey);
-        if (state.menuState === 0) {
-            if (e.code === 'ArrowLeft') { state.selectedCharIndex = (state.selectedCharIndex - 1 + CHARACTERS.length) % CHARACTERS.length; initMenu(); }
-            else if (e.code === 'ArrowRight') { state.selectedCharIndex = (state.selectedCharIndex + 1) % CHARACTERS.length; initMenu(); }
-            else if (e.code === 'Enter' || e.code === 'Space' || e.code === 'ArrowDown') { state.menuState = 1; initMenu(); }
-        } else if (state.menuState === 1) {
-            if (e.code === 'ArrowLeft') { state.selectedLevelKey = levelKeys[(currentLevelIndex - 1 + levelKeys.length) % levelKeys.length]; initMenu(); }
-            else if (e.code === 'ArrowRight') { state.selectedLevelKey = levelKeys[(currentLevelIndex + 1) % levelKeys.length]; initMenu(); }
-            else if (e.code === 'Enter' || e.code === 'Space' || e.code === 'ArrowDown') { state.menuState = 2; initMenu(); }
-            else if (e.code === 'ArrowUp' || e.code === 'Escape') { state.menuState = 0; initMenu(); }
-        } else if (state.menuState === 2) {
-            if (e.code === 'Enter' || e.code === 'Space') window.startGame();
-            else if (e.code === 'ArrowUp' || e.code === 'Escape') { state.menuState = 1; initMenu(); }
-        }
-        return;
-    }
-    state.keys[e.code] = true;
-    if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)) e.preventDefault();
-    if (e.code === keyBindings.CHANGE && state.players[0]) state.players[0].cycleBombType();
-    if (e.key.toLowerCase() === 'p' || e.code === 'Escape') window.togglePause();
-});
-window.addEventListener('keyup', e => { state.keys[e.code] = false; });
-
-// --- GAME LOGIC ---
-
+// --- UPDATE LOGIC ---
 function update() {
     if (state.isGameOver) return;
     state.players.forEach(p => p.inFire = false);
 
+    // Hellfire Logic
     if (state.currentLevel.hasCentralFire) {
         if (!state.hellFireActive) {
             if (state.particles.some(p => p.isFire && p.gx === HELL_CENTER.x && p.gy === HELL_CENTER.y)) {
@@ -202,59 +143,103 @@ function update() {
         }
     }
 
+    // Bombs Update
     for (let i = state.bombs.length - 1; i >= 0; i--) {
         let b = state.bombs[i]; b.timer--;
         if (b.isRolling) {
             b.px += b.rollDir.x * b.rollSpeed; b.py += b.rollDir.y * b.rollSpeed;
             const nextGx = Math.floor((b.px + TILE_SIZE/2) / TILE_SIZE);
             const nextGy = Math.floor((b.py + TILE_SIZE/2) / TILE_SIZE);
+            
+            // Kollision mit Feuer?
             const hitFire = state.particles.some(p => p.isFire && p.gx === nextGx && p.gy === nextGy);
-            if (hitFire) { b.isRolling = false; b.gx = nextGx; b.gy = nextGy; b.px = b.gx * TILE_SIZE; b.py = b.gy * TILE_SIZE; b.timer = 0; }
-            else {
+            if (hitFire) { 
+                b.isRolling = false; b.gx = nextGx; b.gy = nextGy; b.px = b.gx * TILE_SIZE; b.py = b.gy * TILE_SIZE; b.timer = 0; 
+            } else {
+                // Kollision mit Wand/Bombe/Spieler?
                 let collision = false;
                 if (nextGx < 0 || nextGx >= GRID_W || nextGy < 0 || nextGy >= GRID_H) collision = true;
                 else if (state.grid[nextGy][nextGx] === TYPES.WALL_HARD || state.grid[nextGy][nextGx] === TYPES.WALL_SOFT || state.grid[nextGy][nextGx] === TYPES.BOMB) collision = true;
+                
                 if (!collision) {
+                     // Spieler Kollision
                      const bRect = { l: b.px, r: b.px + TILE_SIZE, t: b.py, b: b.py + TILE_SIZE };
                      const hitPlayer = state.players.find(p => { if (!p.alive) return false; if (b.walkableIds.includes(p.id)) return false; const size = TILE_SIZE * 0.7; const offset = (TILE_SIZE - size) / 2; const pRect = { l: p.x + offset, r: p.x + size + offset, t: p.y + offset, b: p.y + size + offset }; return (bRect.l < pRect.r && bRect.r > pRect.l && bRect.t < pRect.b && bRect.b > pRect.t); });
                      if (hitPlayer) collision = true;
                 }
+
                 if (collision) {
+                    // Stop Rolling
                     b.isRolling = false; b.gx = Math.round(b.px / TILE_SIZE); b.gy = Math.round(b.py / TILE_SIZE);
+                    
+                    // Verhindere Überlappung
                     let occupied = state.players.some(p => { if (!p.alive) return false; const pGx = Math.round(p.x / TILE_SIZE); const pGy = Math.round(p.y / TILE_SIZE); return pGx === b.gx && pGy === b.gy && !b.walkableIds.includes(p.id); });
-                    if (isSolid(b.gx, b.gy) || occupied) { b.gx -= b.rollDir.x; b.gy -= b.rollDir.y; }
+                    if (state.grid[b.gy][b.gx] !== TYPES.EMPTY && state.grid[b.gy][b.gx] !== TYPES.OIL && state.grid[b.gy][b.gx] !== TYPES.WATER && state.grid[b.gy][b.gx] !== TYPES.BRIDGE) {
+                         b.gx -= b.rollDir.x; b.gy -= b.rollDir.y; 
+                    } else if (occupied) {
+                         b.gx -= b.rollDir.x; b.gy -= b.rollDir.y;
+                    }
+                    
                     b.px = b.gx * TILE_SIZE; b.py = b.gy * TILE_SIZE; 
-                    b.underlyingTile = state.grid[b.gy][b.gx]; 
+                    
+                    // Untergrund merken & Bombe setzen
+                    b.underlyingTile = state.grid[b.gy][b.gx];
                     state.grid[b.gy][b.gx] = TYPES.BOMB;
-                } else { b.gx = nextGx; b.gy = nextGy; }
+                } else { 
+                    b.gx = nextGx; b.gy = nextGy; 
+                }
             }
         }
+        // Walkable ID Cleanup
         b.walkableIds = b.walkableIds.filter(pid => { const p = state.players.find(pl => pl.id === pid); if (!p) return false; const size = TILE_SIZE * 0.7; const offset = (TILE_SIZE - size) / 2; const pLeft = p.x + offset; const pRight = pLeft + size; const pTop = p.y + offset; const pBottom = pTop + size; const bLeft = b.px; const bRight = bLeft + TILE_SIZE; const bTop = b.py; const bBottom = bTop + TILE_SIZE; return (pLeft < bRight && pRight > bLeft && pTop < bBottom && pBottom > bTop); });
+        
         if (b.timer <= 0) { explodeBomb(b); state.bombs.splice(i, 1); }
     }
 
+    // Particles Update
     for (let i = state.particles.length - 1; i >= 0; i--) {
         let p = state.particles[i]; p.life--;
         if (p.text) p.y += p.vy;
+        
         if (p.isFire) {
+            // Player Damage Check
             const fireX = p.gx * TILE_SIZE; const fireY = p.gy * TILE_SIZE;
-            const tolerance = 6; const fkLeft = fireX + tolerance; const fkRight = fireX + TILE_SIZE - tolerance; const fkTop = fireY + tolerance; const fkBottom = fireY + TILE_SIZE - tolerance;
+            const tolerance = 6; 
+            const fkLeft = fireX + tolerance; const fkRight = fireX + TILE_SIZE - tolerance; const fkTop = fireY + tolerance; const fkBottom = fireY + TILE_SIZE - tolerance;
+            
             state.players.forEach(pl => {
                 if (!pl.alive) return;
                 const hurtSize = 24; const pCx = pl.x + TILE_SIZE/2; const pCy = pl.y + TILE_SIZE/2;
                 const plLeft = pCx - hurtSize/2; const plRight = pCx + hurtSize/2; const plTop = pCy - hurtSize/2; const plBottom = pCy + hurtSize/2;
                 if (plLeft < fkRight && plRight > fkLeft && plTop < fkBottom && plBottom > fkTop) pl.inFire = true;
             });
+
+            // Chain Reaction
             const hitBombIndex = state.bombs.findIndex(b => b.gx === p.gx && b.gy === p.gy);
-            if (hitBombIndex !== -1) { const chainedBomb = state.bombs[hitBombIndex]; if (chainedBomb.timer > 1) { if(chainedBomb.isRolling) { chainedBomb.isRolling = false; chainedBomb.px = chainedBomb.gx * TILE_SIZE; chainedBomb.py = chainedBomb.gy * TILE_SIZE; } chainedBomb.timer = 0; } }
+            if (hitBombIndex !== -1) { 
+                const chainedBomb = state.bombs[hitBombIndex]; 
+                if (chainedBomb.timer > 1) { 
+                    if(chainedBomb.isRolling) { 
+                        chainedBomb.isRolling = false; 
+                        chainedBomb.px = chainedBomb.gx * TILE_SIZE; 
+                        chainedBomb.py = chainedBomb.gy * TILE_SIZE; 
+                        // Wenn rollend getroffen: Underlying tile ist aktuelles Grid
+                        chainedBomb.underlyingTile = state.grid[chainedBomb.gy][chainedBomb.gx];
+                    } 
+                    chainedBomb.timer = 0; 
+                } 
+            }
         }
         if (p.life <= 0) state.particles.splice(i, 1);
     }
 
+    // Apply Damage & Update Players
     state.players.forEach(p => { if (p.inFire) { p.fireTimer++; if (p.fireTimer >= 12) { killPlayer(p); p.fireTimer = 0; } } else p.fireTimer = 0; });
+    
     let aliveCount = 0; let livingPlayers = [];
     state.players.forEach(p => { p.update(); if (p.alive) { aliveCount++; livingPlayers.push(p); } });
 
+    // Infection
     for (let i = 0; i < livingPlayers.length; i++) {
         for (let j = i + 1; j < livingPlayers.length; j++) {
             const p1 = livingPlayers[i]; const p2 = livingPlayers[j];
@@ -265,9 +250,14 @@ function update() {
             }
         }
     }
-    if (state.players.length > 1 && aliveCount <= 1) { const winner = livingPlayers.length > 0 ? livingPlayers[0] : null; endGame(winner ? winner.name + " WINS!" : "DRAW!"); }
+    // Win Condition
+    if (state.players.length > 1 && aliveCount <= 1) { 
+        const winner = livingPlayers.length > 0 ? livingPlayers[0] : null; 
+        endGame(winner ? winner.name + " WINS!" : "DRAW!"); 
+    }
 }
 
+// --- HELPERS ---
 function triggerHellFire() {
     const duration = 120; const range = 5; 
     const dirs = [{x:0, y:-1}, {x:0, y:1}, {x:-1, y:0}, {x:1, y:0}];
@@ -295,36 +285,29 @@ function triggerHellFire() {
 function explodeBomb(b) {
     b.owner.activeBombs--; 
     if (!b.isRolling) {
-        const fallbackTile = TYPES.EMPTY;
-        state.grid[b.gy][b.gx] = (b.underlyingTile !== undefined) ? b.underlyingTile : fallbackTile;
+        state.grid[b.gy][b.gx] = (b.underlyingTile !== undefined) ? b.underlyingTile : TYPES.EMPTY;
     }
     
     const isBoostPad = (state.currentLevel.id === 'hell' || state.currentLevel.id === 'ice') && BOOST_PADS.some(p => p.x === b.gx && p.y === b.gy);
-    
-    // --- NEU: ÖL-CHECK ---
     const isOil = (b.underlyingTile === TYPES.OIL);
-    
-    // Reichweite: Wenn Boost oder Öl -> 15 (Max), sonst normale Range
     const range = (isBoostPad || isOil) ? 15 : b.range; 
     
-    // Dauer: Napalm 720, Öl 1200 (20s), sonst 120
-    let duration = 120;
-    if (b.napalm) duration = 720;
-    if (isOil) duration = 1200;
+    let centerNapalm = b.napalm;
+    let centerOil = isOil;
+    let centerDuration = 120;
+    if (b.napalm) centerDuration = 720;
+    if (isOil) centerDuration = 1200;
 
-    // Wenn Wasser: Feuer sofort aus (120) und kein Napalm/Öl-Effekt
-    let activeNapalm = b.napalm;
-    let activeOil = isOil;
     if (b.underlyingTile === TYPES.WATER) {
-        activeNapalm = false;
-        activeOil = false;
-        duration = 120;
+        centerNapalm = false;
+        centerOil = false;
+        centerDuration = 120;
     }
 
     destroyItem(b.gx, b.gy); 
     extinguishNapalm(b.gx, b.gy); 
     
-    createFire(b.gx, b.gy, duration, activeNapalm, 'center', null, activeOil);
+    createFire(b.gx, b.gy, centerDuration, centerNapalm, 'center', null, centerOil);
     
     const dirs = [{x:0, y:-1}, {x:0, y:1}, {x:-1, y:0}, {x:1, y:0}];
     dirs.forEach(d => {
@@ -333,19 +316,18 @@ function explodeBomb(b) {
             if (tx < 0 || tx >= GRID_W || ty < 0 || ty >= GRID_H) break;
             const tile = state.grid[ty][tx];
             
-            // Wenn wir auf ein Ölfeld treffen, wird es auch entzündet (20s)
             let tileIsOil = (tile === TYPES.OIL);
+            let tileNapalm = b.napalm;
+            let tileOil = centerOil || tileIsOil;
             
-            // Vererbe Napalm/Öl Status der Bombe, aber Ölfeld hat Vorrang
-            let currentNapalm = activeNapalm;
-            let currentOil = activeOil || tileIsOil;
-            
-            let currentDuration = duration;
-            if (tileIsOil) currentDuration = 1200; // Öl brennt immer 20s
+            let tileDuration = 120;
+            if (tileNapalm) tileDuration = 720;
+            if (tileOil) tileDuration = 1200;
+
             if (tile === TYPES.WATER) {
-                currentNapalm = false;
-                currentOil = false;
-                currentDuration = 120;
+                tileNapalm = false;
+                tileOil = false;
+                tileDuration = 120;
             }
 
             let type = (i === range) ? 'end' : 'middle';
@@ -355,12 +337,12 @@ function explodeBomb(b) {
                 type = 'end';
                 destroyWall(tx, ty); 
                 extinguishNapalm(tx, ty); 
-                createFire(tx, ty, currentDuration, currentNapalm, type, d, currentOil); 
+                createFire(tx, ty, tileDuration, tileNapalm, type, d, tileOil); 
                 break; 
             } else { 
                 destroyItem(tx, ty); 
                 extinguishNapalm(tx, ty); 
-                createFire(tx, ty, currentDuration, currentNapalm, type, d, currentOil); 
+                createFire(tx, ty, tileDuration, tileNapalm, type, d, tileOil); 
             }
         }
     });
@@ -369,38 +351,23 @@ function explodeBomb(b) {
 function extinguishNapalm(gx, gy) { state.particles.forEach(p => { if (p.isFire && p.isNapalm && p.gx === gx && p.gy === gy) p.life = 0; }); }
 function destroyItem(x, y) { if (state.items[y][x] !== ITEMS.NONE) { state.items[y][x] = ITEMS.NONE; createFloatingText(x * TILE_SIZE, y * TILE_SIZE, "ASHES", "#555555"); for(let i=0; i<5; i++) state.particles.push({ x: x * TILE_SIZE + TILE_SIZE/2, y: y * TILE_SIZE + TILE_SIZE/2, vx: (Math.random()-0.5)*2, vy: (Math.random()-0.5)*2, life: 30, color: '#333333', size: Math.random()*3 }); } }
 
-// --- NEU: createFire mit isOilFire Parameter ---
 function createFire(gx, gy, duration, isNapalm = false, type = 'center', dir = null, isOilFire = false) { 
     state.particles.push({ 
-        gx: gx, 
-        gy: gy, 
-        isFire: true, 
-        isNapalm: isNapalm, 
-        isOilFire: isOilFire, // NEU
-        life: duration, 
-        maxLife: duration,
-        type: type, 
-        dir: dir    
+        gx: gx, gy: gy, 
+        isFire: true, isNapalm: isNapalm, isOilFire: isOilFire,
+        life: duration, maxLife: duration,
+        type: type, dir: dir    
     }); 
 }
 
 function destroyWall(x, y) { state.grid[y][x] = TYPES.EMPTY; for(let i=0; i<5; i++) state.particles.push({ x: x * TILE_SIZE + TILE_SIZE/2, y: y * TILE_SIZE + TILE_SIZE/2, vx: (Math.random()-0.5)*4, vy: (Math.random()-0.5)*4, life: 20, color: '#882222', size: Math.random()*5 }); }
 function killPlayer(p) { 
     if (p.invincibleTimer > 0 || !p.alive) return; 
-    p.alive = false; 
-    p.deathTimer = 90; 
+    p.alive = false; p.deathTimer = 90; 
     createFloatingText(p.x, p.y, "ELIMINATED", "#ff0000"); 
-    for(let i=0; i<15; i++) {
-        state.particles.push({ 
-            x: p.x + 24, y: p.y + 24, 
-            vx: (Math.random()-0.5)*6, vy: (Math.random()-0.5)*6, 
-            life: 60, color: '#666666', size: 4 
-        });
-    }
+    for(let i=0; i<15; i++) { state.particles.push({ x: p.x + 24, y: p.y + 24, vx: (Math.random()-0.5)*6, vy: (Math.random()-0.5)*6, life: 60, color: '#666666', size: 4 }); }
 }
-function endGame(msg) { if (state.isGameOver) return; state.isGameOver = true; setTimeout(() => { document.getElementById('go-message').innerText = msg; document.getElementById('game-over').classList.remove('hidden'); }, 3000); }
 
-// --- SAFE GAME LOOP ---
 function gameLoop() {
     if (!document.getElementById('main-menu').classList.contains('hidden')) { } 
     else if (!state.isPaused) { 
@@ -416,4 +383,5 @@ function gameLoop() {
     gameLoopId = requestAnimationFrame(gameLoop);
 }
 
-window.showMenu();
+// Start UI (ui.js zeigt das Menu)
+showMenu();
