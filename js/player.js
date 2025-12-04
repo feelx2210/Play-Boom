@@ -21,7 +21,7 @@ export class Player {
         this.alive = true;
         this.invincibleTimer = 0;
         this.fireTimer = 0;
-        this.speed = 2.5; // Speed Setting
+        this.speed = 2.5; 
         this.maxBombs = 1;
         this.activeBombs = 0;
         this.bombRange = 1;
@@ -37,7 +37,6 @@ export class Player {
     update() {
         if (!this.alive) return;
 
-        // --- HUD UPDATE (nur für P1) ---
         if (this.id === 1) this.updateHud();
 
         this.bobTimer += 0.2;
@@ -48,6 +47,7 @@ export class Player {
                 this.hasRolling = false;
                 if (this.currentBombMode === BOMB_MODES.ROLLING) {
                     this.currentBombMode = BOMB_MODES.STANDARD;
+                    this.updateHud();
                 }
                 createFloatingText(this.x, this.y, "ROLLING LOST", "#cccccc");
             }
@@ -58,6 +58,7 @@ export class Player {
                 this.hasNapalm = false;
                 if (this.currentBombMode === BOMB_MODES.NAPALM) {
                     this.currentBombMode = BOMB_MODES.STANDARD;
+                    this.updateHud();
                 }
                 createFloatingText(this.x, this.y, "NAPALM LOST", "#cccccc");
             }
@@ -65,7 +66,6 @@ export class Player {
         
         if (this.invincibleTimer > 0) this.invincibleTimer--;
 
-        // --- SKULL LOGIC ---
         let currentSpeed = this.speed;
 
         if (this.skullEffect) {
@@ -111,17 +111,24 @@ export class Player {
             const size = TILE_SIZE * 0.85; 
             const offset = (TILE_SIZE - size) / 2;
 
+            // --- VERBESSERTE KOLLISIONSPRÜFUNG ---
             const check = (x, y) => {
                 const gx = Math.floor(x / TILE_SIZE);
                 const gy = Math.floor(y / TILE_SIZE);
                 if (gx < 0 || gx >= GRID_W || gy < 0 || gy >= GRID_H) return true;
+                
+                // 1. Wände prüfen
                 if (state.grid[gy][gx] === TYPES.WALL_HARD || state.grid[gy][gx] === TYPES.WALL_SOFT) return true;
-                if (state.grid[gy][gx] === TYPES.BOMB) {
-                    const bomb = state.bombs.find(b => b.gx === gx && b.gy === gy);
-                    if (bomb && !bomb.walkableIds.includes(this.id)) return true;
-                }
+                
+                // 2. Bomben prüfen (Auch rollende!)
+                // Wir suchen in der Bomben-Liste, ob an dieser Stelle eine Bombe ist.
+                // Das ist sicherer als nur state.grid zu fragen, da rollende Bomben das Grid nicht blockieren.
+                const bomb = state.bombs.find(b => b.gx === gx && b.gy === gy);
+                if (bomb && !bomb.walkableIds.includes(this.id)) return true;
+
                 return false;
             };
+            // -------------------------------------
 
             if (dx !== 0) {
                 const nextX = this.x + dx;
@@ -163,17 +170,24 @@ export class Player {
     move(dx, dy) {
         const size = TILE_SIZE * 0.85; 
         const offset = (TILE_SIZE - size) / 2;
+        
+        // --- VERBESSERTE KOLLISIONSPRÜFUNG (AUCH FÜR BOTS) ---
         const check = (x, y) => {
             const gx = Math.floor(x / TILE_SIZE);
             const gy = Math.floor(y / TILE_SIZE);
             if (gx < 0 || gx >= GRID_W || gy < 0 || gy >= GRID_H) return true;
+            
+            // 1. Wände
             if (state.grid[gy][gx] === TYPES.WALL_HARD || state.grid[gy][gx] === TYPES.WALL_SOFT) return true;
-            if (state.grid[gy][gx] === TYPES.BOMB) {
-                const bomb = state.bombs.find(b => b.gx === gx && b.gy === gy);
-                if (bomb && !bomb.walkableIds.includes(this.id)) return true;
-            }
+            
+            // 2. Bomben (alle)
+            const bomb = state.bombs.find(b => b.gx === gx && b.gy === gy);
+            if (bomb && !bomb.walkableIds.includes(this.id)) return true;
+
             return false;
         };
+        // -----------------------------------------------------
+
         if (dx !== 0) {
             const nextX = this.x + dx;
             const xEdge = dx > 0 ? nextX + size + offset : nextX + offset;
@@ -219,7 +233,6 @@ export class Player {
     }
 
     plantBomb() {
-        // 1. MANUELLER STOP (Hier fehlte vorher der Code!)
         const rollingBomb = state.bombs.find(b => b.owner === this && b.isRolling);
         if (rollingBomb) {
             rollingBomb.isRolling = false;
@@ -227,16 +240,11 @@ export class Player {
             rollingBomb.gy = Math.round(rollingBomb.py / TILE_SIZE);
             rollingBomb.px = rollingBomb.gx * TILE_SIZE;
             rollingBomb.py = rollingBomb.gy * TILE_SIZE;
-            
-            // FIX: Wir speichern, was unter der Bombe war, bevor wir es überschreiben!
             rollingBomb.underlyingTile = state.grid[rollingBomb.gy][rollingBomb.gx];
-            
             state.grid[rollingBomb.gy][rollingBomb.gx] = TYPES.BOMB;
             return;
         }
-        // ---------------------------------------------------
 
-        // 2. NEUE BOMBE LEGEN
         if (this.skullEffect === 'cant_plant') return;
         if (this.activeBombs >= this.maxBombs) return;
         const gx = Math.round(this.x / TILE_SIZE);
@@ -262,7 +270,6 @@ export class Player {
             napalm: isNapalm,
             isRolling: isRolling,
             isBlue: isRolling, 
-            // Speichern, was unter der Bombe liegt
             underlyingTile: tile,
             walkableIds: state.players.filter(p => {
                 const pGx = Math.round(p.x / TILE_SIZE);
