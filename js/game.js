@@ -3,6 +3,7 @@ import { state } from './state.js';
 import { createFloatingText, isSolid } from './utils.js';
 import { draw, drawLevelPreview, drawCharacterSprite } from './graphics.js';
 import { Player } from './player.js';
+// WICHTIG: UI-Logik wird importiert
 import { endGame, showMenu, handleMenuInput, togglePause } from './ui.js';
 
 const canvas = document.getElementById('gameCanvas');
@@ -13,7 +14,9 @@ canvas.height = GRID_H * TILE_SIZE;
 let gameLoopId;
 
 // --- SPIEL STARTEN ---
+// Diese Funktion muss global sein, damit ui.js sie aufrufen kann
 window.startGame = function() {
+    // UI ausblenden
     document.getElementById('main-menu').classList.add('hidden');
     document.getElementById('game-over').classList.add('hidden');
     document.getElementById('ui-layer').classList.remove('hidden');
@@ -27,10 +30,19 @@ window.startGame = function() {
     container.style.borderColor = state.currentLevel.border;
     document.getElementById('p1-name').innerText = userChar.name.toUpperCase();
 
-    state.grid = []; state.items = []; state.bombs = []; state.particles = []; state.players = [];
-    state.isGameOver = false; state.isPaused = false;
-    state.hellFireTimer = 0; state.hellFirePhase = 'IDLE'; state.hellFireActive = false;
+    // Reset State
+    state.grid = []; 
+    state.items = []; 
+    state.bombs = []; 
+    state.particles = []; 
+    state.players = [];
+    state.isGameOver = false; 
+    state.isPaused = false;
+    state.hellFireTimer = 0; 
+    state.hellFirePhase = 'IDLE'; 
+    state.hellFireActive = false; 
 
+    // Grid generieren
     for (let y = 0; y < GRID_H; y++) {
         let row = []; let itemRow = [];
         for (let x = 0; x < GRID_W; x++) {
@@ -53,9 +65,11 @@ window.startGame = function() {
             }
             itemRow.push(ITEMS.NONE);
         }
-        state.grid.push(row); state.items.push(itemRow);
+        state.grid.push(row); 
+        state.items.push(itemRow);
     }
 
+    // Hell: Ölfelder initialisieren
     if (state.currentLevel.id === 'hell') {
         OIL_PADS.forEach(oil => {
             if (state.grid[oil.y][oil.x] === TYPES.EMPTY) {
@@ -65,9 +79,14 @@ window.startGame = function() {
     }
 
     const corners = [{x: 1, y: 1}, {x: 1, y: 2}, {x: 2, y: 1}, {x: GRID_W-2, y: 1}, {x: GRID_W-2, y: 2}, {x: GRID_W-3, y: 1}, {x: 1, y: GRID_H-2}, {x: 1, y: GRID_H-3}, {x: 2, y: GRID_H-2}, {x: GRID_W-2, y: GRID_H-2}, {x: GRID_W-3, y: GRID_H-2}, {x: GRID_W-2, y: GRID_H-3}];
-    if (state.currentLevel.id === 'jungle') for(let x=1; x<GRID_W-1; x++) state.items[7][x] = ITEMS.NONE; 
     corners.forEach(p => state.grid[p.y][p.x] = TYPES.EMPTY);
-    if (state.currentLevel.hasCentralFire) { state.grid[HELL_CENTER.y][HELL_CENTER.x] = TYPES.EMPTY; state.items[HELL_CENTER.y][HELL_CENTER.x] = ITEMS.NONE; }
+    
+    if (state.currentLevel.id === 'jungle') for(let x=1; x<GRID_W-1; x++) state.items[7][x] = ITEMS.NONE; 
+    
+    if (state.currentLevel.hasCentralFire) { 
+        state.grid[HELL_CENTER.y][HELL_CENTER.x] = TYPES.EMPTY; 
+        state.items[HELL_CENTER.y][HELL_CENTER.x] = ITEMS.NONE; 
+    }
 
     distributeItems();
 
@@ -96,22 +115,31 @@ function distributeItems() {
 
 // --- INPUT LISTENER ---
 window.addEventListener('keydown', e => {
+    // Wenn wir im Menü sind, an ui.js delegieren!
     if (!document.getElementById('main-menu').classList.contains('hidden')) {
         handleMenuInput(e.code);
         return;
     }
+    
+    // Im Spiel
     state.keys[e.code] = true;
     if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)) e.preventDefault();
+    
     if (e.code === keyBindings.CHANGE && state.players[0]) state.players[0].cycleBombType();
+    
+    // Pause umschalten (P oder ESC)
     if (e.key.toLowerCase() === 'p' || e.code === 'Escape') togglePause();
 });
+
 window.addEventListener('keyup', e => { state.keys[e.code] = false; });
+
 
 // --- UPDATE LOOP ---
 function update() {
     if (state.isGameOver) return;
     state.players.forEach(p => p.inFire = false);
 
+    // Hellfire
     if (state.currentLevel.hasCentralFire) {
         if (!state.hellFireActive) {
             if (state.particles.some(p => p.isFire && p.gx === HELL_CENTER.x && p.gy === HELL_CENTER.y)) {
@@ -125,6 +153,7 @@ function update() {
         }
     }
 
+    // Bombs
     for (let i = state.bombs.length - 1; i >= 0; i--) {
         let b = state.bombs[i]; b.timer--;
         if (b.isRolling) {
@@ -157,6 +186,7 @@ function update() {
         if (b.timer <= 0) { explodeBomb(b); state.bombs.splice(i, 1); }
     }
 
+    // Particles
     for (let i = state.particles.length - 1; i >= 0; i--) {
         let p = state.particles[i]; p.life--;
         if (p.text) p.y += p.vy;
@@ -175,10 +205,12 @@ function update() {
         if (p.life <= 0) state.particles.splice(i, 1);
     }
 
+    // Damage & Update
     state.players.forEach(p => { if (p.inFire) { p.fireTimer++; if (p.fireTimer >= 12) { killPlayer(p); p.fireTimer = 0; } } else p.fireTimer = 0; });
     let aliveCount = 0; let livingPlayers = [];
     state.players.forEach(p => { p.update(); if (p.alive) { aliveCount++; livingPlayers.push(p); } });
 
+    // Infection
     for (let i = 0; i < livingPlayers.length; i++) {
         for (let j = i + 1; j < livingPlayers.length; j++) {
             const p1 = livingPlayers[i]; const p2 = livingPlayers[j];
@@ -194,8 +226,7 @@ function update() {
 
 // --- HELPERS ---
 function triggerHellFire() {
-    const duration = 100; // 100 Frames Explosion
-    const range = 5; 
+    const duration = 100; const range = 5; 
     const dirs = [{x:0, y:-1}, {x:0, y:1}, {x:-1, y:0}, {x:1, y:0}];
     dirs.forEach(d => {
         for (let i = 1; i <= range; i++) {
@@ -226,27 +257,17 @@ function explodeBomb(b) {
         state.grid[b.gy][b.gx] = (b.underlyingTile !== undefined) ? b.underlyingTile : fallbackTile;
     }
     
-    // Check ob Bombe auf Booster/Öl liegt für REICHWEITE
     const isBoostPad = (state.currentLevel.id === 'hell' || state.currentLevel.id === 'ice') && BOOST_PADS.some(p => p.x === b.gx && p.y === b.gy);
     const isOilSource = (b.underlyingTile === TYPES.OIL);
     const range = (isBoostPad || isOilSource) ? 15 : b.range; 
     
-    // Eigenschaften für das Zentrum
     let centerNapalm = b.napalm;
-    // Standard Explosion ist immer 100 Frames
     let centerDuration = 100;
     let centerIsOil = isOilSource;
 
-    // Sonderfall: Wenn es ein Ölfeld ist, brennt es DANACH noch 720 Frames (Total 820)
-    if (isOilSource) {
-        centerDuration = 820; // 100 Boom + 720 Burn
-    }
-    // Sonderfall: Napalm brennt auch länger
-    else if (b.napalm) {
-        centerDuration = 820; 
-    }
+    if (isOilSource) centerDuration = 820; 
+    else if (b.napalm) centerDuration = 820; 
 
-    // Wasser löscht sofort (aber Standard Explosion 100 bleibt)
     if (b.underlyingTile === TYPES.WATER) {
         centerNapalm = false;
         centerIsOil = false;
@@ -264,19 +285,13 @@ function explodeBomb(b) {
             if (tx < 0 || tx >= GRID_W || ty < 0 || ty >= GRID_H) break;
             const tile = state.grid[ty][tx];
             
-            // Berechnung pro Kachel für den Strahl
             let tileIsOil = (tile === TYPES.OIL);
             let tileNapalm = b.napalm;
-            // Eine Kachel brennt nur als Ölfeuer, wenn sie SELBST Öl ist
             let tileIsOilFire = tileIsOil; 
             
-            let tileDuration = 100; // Standard Explosion
-            
-            if (tileIsOil) {
-                tileDuration = 820; // Öl brennt nach
-            } else if (tileNapalm) {
-                tileDuration = 820; // Napalm brennt nach
-            }
+            let tileDuration = 100; 
+            if (tileIsOil) tileDuration = 820; 
+            else if (tileNapalm) tileDuration = 820; 
 
             if (tile === TYPES.WATER) {
                 tileNapalm = false;
@@ -327,8 +342,6 @@ function killPlayer(p) {
     for(let i=0; i<15; i++) { state.particles.push({ x: p.x + 24, y: p.y + 24, vx: (Math.random()-0.5)*6, vy: (Math.random()-0.5)*6, life: 60, color: '#666666', size: 4 }); }
 }
 
-function endGame(msg) { if (state.isGameOver) return; state.isGameOver = true; setTimeout(() => { document.getElementById('go-message').innerText = msg; document.getElementById('game-over').classList.remove('hidden'); }, 3000); }
-
 // --- SAFE GAME LOOP ---
 function gameLoop() {
     if (!document.getElementById('main-menu').classList.contains('hidden')) { } 
@@ -344,7 +357,6 @@ function gameLoop() {
     }
     gameLoopId = requestAnimationFrame(gameLoop);
 }
-// ----------------------
 
-// Start UI (ui.js zeigt das Menu)
+// Init start
 showMenu();
