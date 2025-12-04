@@ -3,6 +3,7 @@ import { state } from './state.js';
 
 const spriteCache = {};
 
+// Interne Funktion zum Malen (wird nur einmal pro Charakter/Richtung aufgerufen)
 function getCachedSprite(charDef, d, isCursed) {
     const key = `${charDef.id}_${d}_${isCursed ? 'cursed' : 'normal'}`;
     if (spriteCache[key]) return spriteCache[key];
@@ -49,12 +50,14 @@ function getCachedSprite(charDef, d, isCursed) {
         else if (d === 'side') { ctx.fillStyle = '#005599'; ctx.fillRect(6, -20, 10, 14); ctx.fillStyle = '#fff'; ctx.fillRect(10, -17, 4, 6); ctx.fillStyle = '#000'; ctx.fillRect(12, -16, 2, 2); ctx.fillStyle = furBase; ctx.fillRect(-4, -14, 12, 26); ctx.fillStyle = furLite; ctx.fillRect(-4, -14, 12, 4); }
     }
     if (isCursed && Math.floor(Date.now()/100)%2===0) { ctx.globalCompositeOperation = 'source-atop'; ctx.fillStyle = 'rgba(255, 255, 255, 0.5)'; ctx.fillRect(-25, -35, 50, 60); ctx.globalCompositeOperation = 'source-over'; }
-    // --- END OF DRAWING CODE ---
-
+    
     spriteCache[key] = c;
     return c;
 }
 
+// --- EXPORTIERTE ZEICHENFUNKTIONEN ---
+
+// Diese Funktion ruft nun den Cache ab, statt selbst zu zeichnen.
 export function drawCharacterSprite(ctx, x, y, charDef, isCursed = false, dir = {x:0, y:1}) {
     ctx.save();
     ctx.translate(x, y);
@@ -107,6 +110,7 @@ export function drawItem(ctx, type, x, y) {
     }
 }
 
+// --- FLAMMEN ZEICHENLOGIK ---
 function drawFlame(ctx, x, y, radius, innerColor, outerColor, jaggy = 0.2) {
     const grad = ctx.createRadialGradient(x, y, radius * 0.2, x, y, radius);
     grad.addColorStop(0, innerColor);
@@ -238,6 +242,7 @@ export function draw(ctx, canvas) {
             if (item !== ITEMS.NONE && state.grid[y][x] !== TYPES.WALL_SOFT) drawItem(ctx, item, px, py);
             
             let tile = state.grid[y][x];
+            // Visual Fix: Wenn hier eine Bombe liegt, zeichne den Untergrund!
             if (tile === TYPES.BOMB) {
                 const bomb = state.bombs.find(b => b.gx === x && b.gy === y);
                 if (bomb && bomb.underlyingTile !== undefined) {
@@ -315,6 +320,19 @@ export function draw(ctx, canvas) {
         ctx.beginPath(); ctx.arc(px + TILE_SIZE/2, py + TILE_SIZE/2, 16 * scale, 0, Math.PI * 2); ctx.fill();
         ctx.strokeStyle = '#aaaaaa'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(px + TILE_SIZE/2 + 8, py + TILE_SIZE/2 - 8); ctx.lineTo(px + TILE_SIZE/2 + 12, py + TILE_SIZE/2 - 14); ctx.stroke();
         ctx.fillStyle = 'orange'; ctx.beginPath(); ctx.arc(px + TILE_SIZE/2 + 12, py + TILE_SIZE/2 - 14, 3, 0, Math.PI*2); ctx.fill();
+        // --- NEU: Funkelnde Zündschnur ---
+        const tipX = px + TILE_SIZE/2 + 12 * scale; 
+        const tipY = py + TILE_SIZE/2 - 14 * scale;
+        ctx.fillStyle = Math.random() > 0.5 ? '#ffff00' : '#ff4400';
+        ctx.beginPath(); ctx.arc(tipX, tipY, 3 + Math.random()*2, 0, Math.PI*2); ctx.fill();
+        for(let j=0; j<3; j++) {
+            const angle = Math.random() * Math.PI * 2;
+            const dist = 2 + Math.random() * 6;
+            ctx.fillStyle = '#ffffff';
+            ctx.globalAlpha = 0.8;
+            ctx.fillRect(tipX + Math.cos(angle)*dist, tipY + Math.sin(angle)*dist, 2, 2);
+            ctx.globalAlpha = 1.0;
+        }
     });
 
     state.particles.forEach(p => {
@@ -331,11 +349,14 @@ export function draw(ctx, canvas) {
             ctx.save();
 
             const explosionDuration = 120;
+
             if (age < 15) {
+                // PHASE 1: EXPLOSION (Start)
                 const grow = age / 15;
                 drawFlame(ctx, cx, cy, 18 * grow, '#ffffff', '#ffff00', 0.1);
             } 
             else if (age < explosionDuration) {
+                // PHASE 2: LODERN
                 const pulse = Math.sin(Date.now() / 30) * 2;
                 const baseSize = 16; 
                 // --- CHECK FÜR ÖL-FEUER ---
@@ -355,6 +376,7 @@ export function draw(ctx, canvas) {
                     }
                     ctx.translate(cx, cy);
                     ctx.rotate(angle);
+                    
                     const beamWidth = 36 + Math.sin(Date.now()/40)*3; 
                     drawBeam(ctx, 0, 0, beamWidth, inner, outer, p.type === 'end');
                 }
@@ -398,6 +420,7 @@ export function draw(ctx, canvas) {
                 }
             }
             ctx.restore();
+
         } else if (p.text) {
             ctx.fillStyle = p.color; ctx.font = '10px "Press Start 2P"'; ctx.fillText(p.text, p.x, p.y);
         } else {
@@ -406,5 +429,4 @@ export function draw(ctx, canvas) {
     });
 
     state.players.slice().sort((a,b) => a.y - b.y).forEach(p => p.draw());
-}
 }
