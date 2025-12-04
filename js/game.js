@@ -86,9 +86,8 @@ window.startGame = function() {
             else if (state.currentLevel.id === 'jungle' && y === 7 && (x === 3 || x === 7 || x === 11)) row.push(TYPES.BRIDGE);
             else if (state.currentLevel.id === 'jungle' && y === 7) row.push(TYPES.WATER);
             else if (x % 2 === 0 && y % 2 === 0) row.push(TYPES.WALL_HARD);
-            // --- ÄNDERUNG: Boost Pads nur in Hell und Ice ---
+            // Boost Pads nur in Hell und Ice
             else if ((state.currentLevel.id === 'hell' || state.currentLevel.id === 'ice') && BOOST_PADS.some(p => p.x === x && p.y === y)) row.push(TYPES.EMPTY); 
-            // ------------------------------------------------
             else if (Math.random() < 0.7) row.push(TYPES.WALL_SOFT);
             else row.push(TYPES.EMPTY);
             itemRow.push(ITEMS.NONE);
@@ -179,6 +178,7 @@ function update() {
     if (state.isGameOver) return;
     state.players.forEach(p => p.inFire = false);
 
+    // Hellfire Logic
     if (state.currentLevel.hasCentralFire) {
         if (!state.hellFireActive) {
             if (state.particles.some(p => p.isFire && p.gx === HELL_CENTER.x && p.gy === HELL_CENTER.y)) {
@@ -192,6 +192,7 @@ function update() {
         }
     }
 
+    // Bombs
     for (let i = state.bombs.length - 1; i >= 0; i--) {
         let b = state.bombs[i]; b.timer--;
         if (b.isRolling) {
@@ -214,7 +215,9 @@ function update() {
                     let occupied = state.players.some(p => { if (!p.alive) return false; const pGx = Math.round(p.x / TILE_SIZE); const pGy = Math.round(p.y / TILE_SIZE); return pGx === b.gx && pGy === b.gy && !b.walkableIds.includes(p.id); });
                     if (isSolid(b.gx, b.gy) || occupied) { b.gx -= b.rollDir.x; b.gy -= b.rollDir.y; }
                     b.px = b.gx * TILE_SIZE; b.py = b.gy * TILE_SIZE; 
+                    
                     b.underlyingTile = state.grid[b.gy][b.gx];
+                    
                     state.grid[b.gy][b.gx] = TYPES.BOMB;
                 } else { b.gx = nextGx; b.gy = nextGy; }
             }
@@ -258,16 +261,28 @@ function update() {
     if (state.players.length > 1 && aliveCount <= 1) { const winner = livingPlayers.length > 0 ? livingPlayers[0] : null; endGame(winner ? winner.name + " WINS!" : "DRAW!"); }
 }
 
+function triggerHellFire() {
+    const duration = 30; const range = 5; 
+    const dirs = [{x:0, y:-1}, {x:0, y:1}, {x:-1, y:0}, {x:1, y:0}];
+    dirs.forEach(d => {
+        for (let i = 1; i <= range; i++) {
+            const tx = HELL_CENTER.x + (d.x * i); const ty = HELL_CENTER.y + (d.y * i);
+            if (tx < 0 || tx >= GRID_W || ty < 0 || ty >= GRID_H) break;
+            const tile = state.grid[ty][tx];
+            if (tile === TYPES.WALL_HARD) break;
+            else if (tile === TYPES.WALL_SOFT) { destroyWall(tx, ty); createFire(tx, ty, duration); break; } 
+            else { destroyItem(tx, ty); createFire(tx, ty, duration); }
+        }
+    });
+}
+
 function explodeBomb(b) {
     b.owner.activeBombs--; 
     if (!b.isRolling) {
         state.grid[b.gy][b.gx] = (b.underlyingTile !== undefined) ? b.underlyingTile : TYPES.EMPTY;
     }
     
-    // --- ÄNDERUNG: Boost Pads gelten nur in Hell und Ice ---
     const isBoostPad = (state.currentLevel.id === 'hell' || state.currentLevel.id === 'ice') && BOOST_PADS.some(p => p.x === b.gx && p.y === b.gy);
-    // --------------------------------------------------------
-    
     const range = isBoostPad ? 15 : b.range; 
     
     let centerNapalm = b.napalm;
@@ -279,6 +294,7 @@ function explodeBomb(b) {
 
     destroyItem(b.gx, b.gy); 
     extinguishNapalm(b.gx, b.gy); 
+    // BUGFIX HIER: centerNapalm statt centerIsNapalm
     createFire(b.gx, b.gy, centerDuration, centerNapalm);
     
     const dirs = [{x:0, y:-1}, {x:0, y:1}, {x:-1, y:0}, {x:1, y:0}];
