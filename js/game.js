@@ -144,7 +144,6 @@ window.showMenu = function() {
     initMenu();
 };
 
-// ... Input Event Listeners ...
 window.addEventListener('keydown', e => {
     if (!document.getElementById('main-menu').classList.contains('hidden')) {
         const levelKeys = Object.keys(LEVELS);
@@ -157,6 +156,10 @@ window.addEventListener('keydown', e => {
             if (e.code === 'ArrowLeft') { state.selectedLevelKey = levelKeys[(currentLevelIndex - 1 + levelKeys.length) % levelKeys.length]; initMenu(); }
             else if (e.code === 'ArrowRight') { state.selectedLevelKey = levelKeys[(currentLevelIndex + 1) % levelKeys.length]; initMenu(); }
             else if (e.code === 'Enter' || e.code === 'Space') { state.menuState = 2; initMenu(); }
+            
+            // --- ÄNDERUNG: ZURÜCK ZU PLAYER SELECTION ---
+            else if (e.code === 'ArrowUp' || e.code === 'Escape') { state.menuState = 0; initMenu(); }
+            // --------------------------------------------
         } else if (state.menuState === 2) {
             if (e.code === 'Enter' || e.code === 'Space') window.startGame();
             else if (e.code === 'ArrowUp') { state.menuState = 1; initMenu(); }
@@ -166,10 +169,7 @@ window.addEventListener('keydown', e => {
     state.keys[e.code] = true;
     if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)) e.preventDefault();
     if (e.code === keyBindings.CHANGE && state.players[0]) state.players[0].cycleBombType();
-    
-    // --- ÄNDERUNG: ESC TASTE HINZUGEFÜGT ---
     if (e.key.toLowerCase() === 'p' || e.code === 'Escape') window.togglePause();
-    // ---------------------------------------
 });
 window.addEventListener('keyup', e => { state.keys[e.code] = false; });
 
@@ -215,7 +215,7 @@ function update() {
                     let occupied = state.players.some(p => { if (!p.alive) return false; const pGx = Math.round(p.x / TILE_SIZE); const pGy = Math.round(p.y / TILE_SIZE); return pGx === b.gx && pGy === b.gy && !b.walkableIds.includes(p.id); });
                     if (isSolid(b.gx, b.gy) || occupied) { b.gx -= b.rollDir.x; b.gy -= b.rollDir.y; }
                     b.px = b.gx * TILE_SIZE; b.py = b.gy * TILE_SIZE; 
-                    b.underlyingTile = state.grid[b.gy][b.gx]; 
+                    b.underlyingTile = state.grid[b.gy][b.gx]; // Safe underlying tile update
                     state.grid[b.gy][b.gx] = TYPES.BOMB;
                 } else { b.gx = nextGx; b.gy = nextGy; }
             }
