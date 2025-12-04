@@ -37,6 +37,10 @@ export class Player {
     update() {
         if (!this.alive) return;
 
+        // --- HUD UPDATE (nur für P1) ---
+        if (this.id === 1) this.updateHud();
+        // -------------------------------
+
         this.bobTimer += 0.2;
 
         if (this.hasRolling) {
@@ -45,7 +49,6 @@ export class Player {
                 this.hasRolling = false;
                 if (this.currentBombMode === BOMB_MODES.ROLLING) {
                     this.currentBombMode = BOMB_MODES.STANDARD;
-                    this.updateHud();
                 }
                 createFloatingText(this.x, this.y, "ROLLING LOST", "#cccccc");
             }
@@ -56,7 +59,6 @@ export class Player {
                 this.hasNapalm = false;
                 if (this.currentBombMode === BOMB_MODES.NAPALM) {
                     this.currentBombMode = BOMB_MODES.STANDARD;
-                    this.updateHud();
                 }
                 createFloatingText(this.x, this.y, "NAPALM LOST", "#cccccc");
             }
@@ -202,18 +204,32 @@ export class Player {
         let idx = modes.indexOf(this.currentBombMode);
         if (idx === -1) idx = 0;
         this.currentBombMode = modes[(idx + 1) % modes.length];
-        this.updateHud();
+        // updateHud wird jetzt im update loop aufgerufen
     }
 
+    // --- NEUE HUD UPDATE FUNKTION ---
     updateHud() {
         if (this.id !== 1) return;
-        const el = document.getElementById('bomb-type');
-        switch(this.currentBombMode) {
-            case BOMB_MODES.STANDARD: el.innerText = '⚫'; break;
-            case BOMB_MODES.NAPALM: el.innerText = '☢️'; break;
-            case BOMB_MODES.ROLLING: el.innerText = '🎳'; break;
+        
+        // 1. Bombentyp Icon
+        const elType = document.getElementById('bomb-type');
+        if (elType) {
+            switch(this.currentBombMode) {
+                case BOMB_MODES.STANDARD: elType.innerText = '⚫'; break;
+                case BOMB_MODES.NAPALM: elType.innerText = '☢️'; break;
+                case BOMB_MODES.ROLLING: elType.innerText = '🎳'; break;
+            }
         }
+
+        // 2. Anzahl Bomben (Max Capacity)
+        const elBombs = document.getElementById('hud-bombs');
+        if (elBombs) elBombs.innerText = `💣 ${this.maxBombs}`;
+
+        // 3. Feuerkraft (Range)
+        const elFire = document.getElementById('hud-fire');
+        if (elFire) elFire.innerText = `🔥 ${this.bombRange}`;
     }
+    // -------------------------------
 
     plantBomb() {
         if (this.skullEffect === 'cant_plant') return;
@@ -222,15 +238,12 @@ export class Player {
         const gy = Math.round(this.y / TILE_SIZE);
         const tile = state.grid[gy][gx];
 
-        // --- HIER IST DIE ÄNDERUNG ---
-        // Prüfen, ob wir im Jungle sind. Wenn ja, erlauben wir Wasser/Brücken.
         let canPlant = (tile === TYPES.EMPTY);
         if (state.currentLevel.id === 'jungle') {
             if (tile === TYPES.WATER || tile === TYPES.BRIDGE) canPlant = true;
         }
 
         if (!canPlant) return; 
-        // -----------------------------
 
         let isRolling = (this.currentBombMode === BOMB_MODES.ROLLING);
         let isNapalm = (this.currentBombMode === BOMB_MODES.NAPALM);
@@ -244,7 +257,6 @@ export class Player {
             napalm: isNapalm,
             isRolling: isRolling,
             isBlue: isRolling, 
-            // Speichern, was unter der Bombe liegt, um es später wiederherzustellen
             underlyingTile: tile,
             walkableIds: state.players.filter(p => {
                 const pGx = Math.round(p.x / TILE_SIZE);
