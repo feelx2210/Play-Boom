@@ -21,7 +21,7 @@ export class Player {
         this.alive = true;
         this.invincibleTimer = 0;
         this.fireTimer = 0;
-        this.speed = 2.5; 
+        this.speed = 2.5; // Speed Setting
         this.maxBombs = 1;
         this.activeBombs = 0;
         this.bombRange = 1;
@@ -39,7 +39,6 @@ export class Player {
 
         // --- HUD UPDATE (nur für P1) ---
         if (this.id === 1) this.updateHud();
-        // -------------------------------
 
         this.bobTimer += 0.2;
 
@@ -84,7 +83,6 @@ export class Player {
                 }
             }
         }
-        // -----------------
 
         const gx = Math.round(this.x / TILE_SIZE);
         const gy = Math.round(this.y / TILE_SIZE);
@@ -151,9 +149,6 @@ export class Player {
     }
 
     updateBot(speed) {
-        const gx = Math.round(this.x / TILE_SIZE);
-        const gy = Math.round(this.y / TILE_SIZE);
-        
         if (this.changeDirTimer <= 0) {
             const dirs = [{x:0, y:-1}, {x:0, y:1}, {x:-1, y:0}, {x:1, y:0}];
             this.botDir = dirs[Math.floor(Math.random()*dirs.length)];
@@ -204,14 +199,11 @@ export class Player {
         let idx = modes.indexOf(this.currentBombMode);
         if (idx === -1) idx = 0;
         this.currentBombMode = modes[(idx + 1) % modes.length];
-        // updateHud wird jetzt im update loop aufgerufen
+        this.updateHud();
     }
 
-    // --- NEUE HUD UPDATE FUNKTION ---
     updateHud() {
         if (this.id !== 1) return;
-        
-        // 1. Bombentyp Icon
         const elType = document.getElementById('bomb-type');
         if (elType) {
             switch(this.currentBombMode) {
@@ -220,18 +212,31 @@ export class Player {
                 case BOMB_MODES.ROLLING: elType.innerText = '🎳'; break;
             }
         }
-
-        // 2. Anzahl Bomben (Max Capacity)
         const elBombs = document.getElementById('hud-bombs');
         if (elBombs) elBombs.innerText = `💣 ${this.maxBombs}`;
-
-        // 3. Feuerkraft (Range)
         const elFire = document.getElementById('hud-fire');
         if (elFire) elFire.innerText = `🔥 ${this.bombRange}`;
     }
-    // -------------------------------
 
     plantBomb() {
+        // 1. MANUELLER STOP (Hier fehlte vorher der Code!)
+        const rollingBomb = state.bombs.find(b => b.owner === this && b.isRolling);
+        if (rollingBomb) {
+            rollingBomb.isRolling = false;
+            rollingBomb.gx = Math.round(rollingBomb.px / TILE_SIZE);
+            rollingBomb.gy = Math.round(rollingBomb.py / TILE_SIZE);
+            rollingBomb.px = rollingBomb.gx * TILE_SIZE;
+            rollingBomb.py = rollingBomb.gy * TILE_SIZE;
+            
+            // FIX: Wir speichern, was unter der Bombe war, bevor wir es überschreiben!
+            rollingBomb.underlyingTile = state.grid[rollingBomb.gy][rollingBomb.gx];
+            
+            state.grid[rollingBomb.gy][rollingBomb.gx] = TYPES.BOMB;
+            return;
+        }
+        // ---------------------------------------------------
+
+        // 2. NEUE BOMBE LEGEN
         if (this.skullEffect === 'cant_plant') return;
         if (this.activeBombs >= this.maxBombs) return;
         const gx = Math.round(this.x / TILE_SIZE);
@@ -257,6 +262,7 @@ export class Player {
             napalm: isNapalm,
             isRolling: isRolling,
             isBlue: isRolling, 
+            // Speichern, was unter der Bombe liegt
             underlyingTile: tile,
             walkableIds: state.players.filter(p => {
                 const pGx = Math.round(p.x / TILE_SIZE);
