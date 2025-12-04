@@ -18,7 +18,6 @@ function initMenu() {
     const levelContainer = document.getElementById('level-select');
     levelContainer.innerHTML = '';
     
-    // Setup Active Classes
     if (state.menuState === 0) {
         charContainer.classList.add('active-group'); charContainer.classList.remove('inactive-group');
         levelContainer.classList.add('inactive-group'); levelContainer.classList.remove('active-group');
@@ -59,7 +58,7 @@ function initMenu() {
     });
 }
 
-// Global functions for HTML access
+// Global functions
 window.startGame = function() {
     document.getElementById('main-menu').classList.add('hidden');
     document.getElementById('game-over').classList.add('hidden');
@@ -74,7 +73,6 @@ window.startGame = function() {
     container.style.borderColor = state.currentLevel.border;
     document.getElementById('p1-name').innerText = userChar.name.toUpperCase();
 
-    // Reset State
     state.grid = []; state.items = []; state.bombs = []; state.particles = []; state.players = [];
     state.isGameOver = false; state.isPaused = false;
     state.hellFireTimer = 0; state.hellFirePhase = 'IDLE'; state.hellFireActive = false;
@@ -86,7 +84,6 @@ window.startGame = function() {
             else if (state.currentLevel.id === 'jungle' && y === 7 && (x === 3 || x === 7 || x === 11)) row.push(TYPES.BRIDGE);
             else if (state.currentLevel.id === 'jungle' && y === 7) row.push(TYPES.WATER);
             else if (x % 2 === 0 && y % 2 === 0) row.push(TYPES.WALL_HARD);
-            // Boost Pads nur in Hell und Ice
             else if ((state.currentLevel.id === 'hell' || state.currentLevel.id === 'ice') && BOOST_PADS.some(p => p.x === x && p.y === y)) row.push(TYPES.EMPTY); 
             else if (Math.random() < 0.7) row.push(TYPES.WALL_SOFT);
             else row.push(TYPES.EMPTY);
@@ -178,7 +175,7 @@ function update() {
     if (state.isGameOver) return;
     state.players.forEach(p => p.inFire = false);
 
-    // Hellfire Logic
+    // Hellfire Logic (Safe)
     if (state.currentLevel.hasCentralFire) {
         if (!state.hellFireActive) {
             if (state.particles.some(p => p.isFire && p.gx === HELL_CENTER.x && p.gy === HELL_CENTER.y)) {
@@ -192,7 +189,6 @@ function update() {
         }
     }
 
-    // Bombs
     for (let i = state.bombs.length - 1; i >= 0; i--) {
         let b = state.bombs[i]; b.timer--;
         if (b.isRolling) {
@@ -215,9 +211,7 @@ function update() {
                     let occupied = state.players.some(p => { if (!p.alive) return false; const pGx = Math.round(p.x / TILE_SIZE); const pGy = Math.round(p.y / TILE_SIZE); return pGx === b.gx && pGy === b.gy && !b.walkableIds.includes(p.id); });
                     if (isSolid(b.gx, b.gy) || occupied) { b.gx -= b.rollDir.x; b.gy -= b.rollDir.y; }
                     b.px = b.gx * TILE_SIZE; b.py = b.gy * TILE_SIZE; 
-                    
-                    b.underlyingTile = state.grid[b.gy][b.gx];
-                    
+                    b.underlyingTile = state.grid[b.gy][b.gx]; // Safe underlying tile update
                     state.grid[b.gy][b.gx] = TYPES.BOMB;
                 } else { b.gx = nextGx; b.gy = nextGy; }
             }
@@ -279,7 +273,9 @@ function triggerHellFire() {
 function explodeBomb(b) {
     b.owner.activeBombs--; 
     if (!b.isRolling) {
-        state.grid[b.gy][b.gx] = (b.underlyingTile !== undefined) ? b.underlyingTile : TYPES.EMPTY;
+        // Safety check for undefined
+        const fallbackTile = TYPES.EMPTY;
+        state.grid[b.gy][b.gx] = (b.underlyingTile !== undefined) ? b.underlyingTile : fallbackTile;
     }
     
     const isBoostPad = (state.currentLevel.id === 'hell' || state.currentLevel.id === 'ice') && BOOST_PADS.some(p => p.x === b.gx && p.y === b.gy);
@@ -294,7 +290,6 @@ function explodeBomb(b) {
 
     destroyItem(b.gx, b.gy); 
     extinguishNapalm(b.gx, b.gy); 
-    // BUGFIX HIER: centerNapalm statt centerIsNapalm
     createFire(b.gx, b.gy, centerDuration, centerNapalm);
     
     const dirs = [{x:0, y:-1}, {x:0, y:1}, {x:-1, y:0}, {x:1, y:0}];
@@ -333,11 +328,22 @@ function destroyWall(x, y) { state.grid[y][x] = TYPES.EMPTY; for(let i=0; i<5; i
 function killPlayer(p) { if (p.invincibleTimer > 0 || !p.alive) return; p.alive = false; createFloatingText(p.x, p.y, "ELIMINATED", "#ff0000"); for(let i=0; i<15; i++) state.particles.push({ x: p.x + 24, y: p.y + 24, vx: (Math.random()-0.5)*8, vy: (Math.random()-0.5)*8, life: 60, color: p.color, size: 5 }); }
 function endGame(msg) { if (state.isGameOver) return; state.isGameOver = true; setTimeout(() => { document.getElementById('go-message').innerText = msg; document.getElementById('game-over').classList.remove('hidden'); }, 3000); }
 
+// --- SAFE GAME LOOP ---
 function gameLoop() {
     if (!document.getElementById('main-menu').classList.contains('hidden')) { } 
-    else if (!state.isPaused) { update(); draw(ctx, canvas); }
+    else if (!state.isPaused) { 
+        try {
+            update(); 
+            draw(ctx, canvas); 
+        } catch (error) {
+            console.error("Game Crashed:", error);
+            alert("Game Crashed! Check Console for details.\n" + error.message);
+            state.isPaused = true;
+        }
+    }
     gameLoopId = requestAnimationFrame(gameLoop);
 }
+// ----------------------
 
 // Start
 window.showMenu();
