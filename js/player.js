@@ -3,7 +3,6 @@ import { state } from './state.js';
 import { isSolid, createFloatingText } from './utils.js';
 import { drawCharacterSprite } from './graphics.js';
 
-// Helper für Canvas Access
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
@@ -21,10 +20,7 @@ export class Player {
         this.alive = true;
         this.invincibleTimer = 0;
         this.fireTimer = 0;
-        
-        // SPEED FIX: 2.0 ist ruckelfrei und ca. 20% langsamer als 2.5
         this.speed = 2; 
-        
         this.maxBombs = 1;
         this.activeBombs = 0;
         this.bombRange = 1;
@@ -34,11 +30,20 @@ export class Player {
         this.lastDir = {x: 0, y: 1}; 
         this.skullEffect = null; this.skullTimer = 0;
         this.targetX = x; this.targetY = y; this.changeDirTimer = 0; 
-        this.bobTimer = 0; 
+        this.bobTimer = 0;
+        // NEU: Timer für Todesanimation
+        this.deathTimer = 0;
     }
 
     update() {
-        if (!this.alive) return;
+        // --- NEUE TODES-LOGIK ---
+        if (!this.alive) {
+            if (this.deathTimer > 0) {
+                this.deathTimer--;
+            }
+            return; // Keine weitere Bewegung/Update für tote Spieler
+        }
+        // ------------------------
 
         if (this.id === 1) this.updateHud();
 
@@ -69,7 +74,6 @@ export class Player {
         
         if (this.invincibleTimer > 0) this.invincibleTimer--;
 
-        // --- SKULL LOGIC ---
         let currentSpeed = this.speed;
 
         if (this.skullEffect) {
@@ -87,7 +91,6 @@ export class Player {
                 }
             }
         }
-        // -----------------
 
         const gx = Math.round(this.x / TILE_SIZE);
         const gy = Math.round(this.y / TILE_SIZE);
@@ -121,7 +124,6 @@ export class Player {
                 const gy = Math.floor(y / TILE_SIZE);
                 if (gx < 0 || gx >= GRID_W || gy < 0 || gy >= GRID_H) return true;
                 if (state.grid[gy][gx] === TYPES.WALL_HARD || state.grid[gy][gx] === TYPES.WALL_SOFT) return true;
-                // Kollision mit Bomben (auch rollende)
                 const bomb = state.bombs.find(b => b.gx === gx && b.gy === gy);
                 if (bomb && !bomb.walkableIds.includes(this.id)) return true;
                 return false;
@@ -253,7 +255,7 @@ export class Player {
             owner: this,
             gx: gx, gy: gy,
             px: gx * TILE_SIZE, py: gy * TILE_SIZE,
-            timer: 200, // SLOWER TIMER (war 160)
+            timer: 200, 
             range: this.bombRange, 
             napalm: isNapalm,
             isRolling: isRolling,
@@ -303,11 +305,30 @@ export class Player {
     }
 
     draw() {
-        if (!this.alive) return;
+        // --- ÄNDERUNG: Zeichne auch tote Spieler solange Timer läuft ---
+        if (!this.alive && this.deathTimer <= 0) return; 
+        // ----------------------------------------------------------------
+
         if (this.invincibleTimer > 0 && Math.floor(Date.now() / 50) % 2 === 0) return;
+        
+        ctx.save();
+        
+        // --- ASCHE EFFEKT ---
+        if (!this.alive && this.deathTimer > 0) {
+            // Berechnung von 0.0 (Start Tod) bis 1.0 (Ende Tod)
+            const progress = 1 - (this.deathTimer / 90); 
+            // Filter: Macht die Figur schwarz/grau und dunkler
+            ctx.filter = `grayscale(100%) brightness(${Math.max(0, 0.5 - progress * 0.5)})`;
+            // Alpha: Blendet die Figur langsam aus
+            ctx.globalAlpha = Math.max(0, 1 - progress);
+        }
+        // --------------------
+
         const bob = Math.sin(this.bobTimer) * 2; 
         ctx.fillStyle = 'rgba(0,0,0,0.5)';
         ctx.beginPath(); ctx.ellipse(this.x + TILE_SIZE/2, this.y + TILE_SIZE - 5, 10, 5, 0, 0, Math.PI*2); ctx.fill();
         drawCharacterSprite(ctx, this.x + TILE_SIZE/2, this.y + TILE_SIZE/2 + bob, this.charDef, !!this.skullEffect, this.lastDir);
+        
+        ctx.restore();
     }
 }
