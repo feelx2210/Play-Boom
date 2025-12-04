@@ -3,6 +3,7 @@ import { state } from './state.js';
 import { isSolid, createFloatingText } from './utils.js';
 import { drawCharacterSprite } from './graphics.js';
 
+// Helper für Canvas Access
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
@@ -31,19 +32,16 @@ export class Player {
         this.skullEffect = null; this.skullTimer = 0;
         this.targetX = x; this.targetY = y; this.changeDirTimer = 0; 
         this.bobTimer = 0;
-        // NEU: Timer für Todesanimation
         this.deathTimer = 0;
     }
 
     update() {
-        // --- NEUE TODES-LOGIK ---
         if (!this.alive) {
             if (this.deathTimer > 0) {
                 this.deathTimer--;
             }
-            return; // Keine weitere Bewegung/Update für tote Spieler
+            return;
         }
-        // ------------------------
 
         if (this.id === 1) this.updateHud();
 
@@ -155,15 +153,129 @@ export class Player {
     }
 
     updateBot(speed) {
-        if (this.changeDirTimer <= 0) {
-            const dirs = [{x:0, y:-1}, {x:0, y:1}, {x:-1, y:0}, {x:1, y:0}];
-            this.botDir = dirs[Math.floor(Math.random()*dirs.length)];
-            this.changeDirTimer = 30;
+        const gx = Math.round(this.x / TILE_SIZE);
+        const gy = Math.round(this.y / TILE_SIZE);
+        const dangerMap = this.getDangerMap();
+        const amInDanger = dangerMap[gy][gx];
+        let targetDir = {x:0, y:0};
+
+        if (amInDanger) {
+            targetDir = this.findSafeMove(gx, gy, dangerMap);
+        } else {
+            const neighbors = [{x:0, y:-1}, {x:0, y:1}, {x:-1, y:0}, {x:1, y:0}];
+            const nearTarget = neighbors.some(d => {
+                const tx = gx + d.x; const ty = gy + d.y;
+                if (tx < 0 || ty < 0 || tx >= GRID_W || ty >= GRID_H) return false;
+                return state.grid[ty][tx] === TYPES.WALL_SOFT; 
+            });
+
+            if (nearTarget && Math.random() < 0.05 && this.activeBombs < this.maxBombs) {
+                if (this.canEscapeAfterPlanting(gx, gy, dangerMap)) {
+                    this.plantBomb();
+                    targetDir = this.findSafeMove(gx, gy, this.getDangerMap()); 
+                }
+            }
+
+            if (targetDir.x === 0 && targetDir.y === 0) {
+                if (this.changeDirTimer <= 0 || isSolid(Math.round((this.x + this.botDir.x*20)/TILE_SIZE), Math.round((this.y + this.botDir.y*20)/TILE_SIZE))) {
+                    const safeNeighbors = neighbors.filter(d => {
+                        const nx = gx + d.x; const ny = gy + d.y;
+                        if (isSolid(nx, ny)) return false;
+                        return !dangerMap[ny][nx];
+                    });
+                    
+                    if (safeNeighbors.length > 0) {
+                        const itemMove = safeNeighbors.find(d => state.items[gy+d.y][gx+d.x] !== ITEMS.NONE);
+                        targetDir = itemMove || safeNeighbors[Math.floor(Math.random() * safeNeighbors.length)];
+                    } else {
+                        targetDir = {x:0, y:0};
+                    }
+                    this.changeDirTimer = 15 + Math.random() * 30;
+                } else {
+                    targetDir = this.botDir;
+                }
+            }
         }
-        if(!this.botDir) this.botDir = {x:0,y:0};
-        
+
+        if (targetDir.x !== 0 || targetDir.y !== 0) {
+            this.botDir = targetDir;
+            if (this.botDir.x !== 0) this.botDir.y = 0;
+            this.lastDir = { x: Math.sign(this.botDir.x), y: Math.sign(this.botDir.y) };
+        }
         this.move(this.botDir.x * speed, this.botDir.y * speed);
         this.changeDirTimer--;
+    }
+
+    getDangerMap() {
+        const map = Array(GRID_H).fill().map(() => Array(GRID_W).fill(false));
+        state.particles.forEach(p => { if (p.isFire && p.gx >= 0 && p.gx < GRID_W && p.gy >= 0 && p.gy < GRID_H) map[p.gy][p.gx] = true; });
+        state.bombs.forEach(b => {
+            const isBoost = state.currentLevel.id !== 'stone' && BOOST_PADS.some(p => p.x === b.gx && p.y === b.gy);
+            const range = isBoost ? 15 : b.range;
+            map[b.gy][b.gx] = true; 
+            const dirs = [{x:0, y:-1}, {x:0, y:1}, {x:-1, y:0}, {x:1, y:0}];
+            dirs.forEach(d => {
+                for (let i = 1; i <= range; i++) {
+                    const tx = b.gx + (d.x * i); const ty = b.gy + (d.y * i);
+                    if (tx < 0 || tx >= GRID_W || ty < 0 || ty >= GRID_H) break;
+                    if (state.grid[ty][tx] === TYPES.WALL_HARD) break;
+                    map[ty][tx] = true;
+                    if (state.grid[ty][tx] === TYPES.WALL_SOFT) break; 
+                }
+            });
+        });
+        if (state.currentLevel.hasCentralFire && state.hellFirePhase !== 'IDLE') {
+            const range = 5; const dirs = [{x:0, y:-1}, {x:0, y:1}, {x:-1, y:0}, {x:1, y:0}];
+            dirs.forEach(d => {
+                for(let i=1; i<=range; i++) {
+                    const tx = HELL_CENTER.x + (d.x * i); const ty = HELL_CENTER.y + (d.y * i);
+                    if (tx >= 0 && tx < GRID_W && ty >= 0 && ty < GRID_H) {
+                        if (state.grid[ty][tx] === TYPES.WALL_HARD) break;
+                        map[ty][tx] = true;
+                        if (state.grid[ty][tx] === TYPES.WALL_SOFT) break;
+                    }
+                }
+            });
+        }
+        return map;
+    }
+
+    findSafeMove(gx, gy, dangerMap) {
+        const queue = [{x: gx, y: gy, firstMove: null, dist: 0}];
+        const visited = new Set();
+        visited.add(gx + "," + gy);
+        const dirs = [{x:0, y:-1}, {x:0, y:1}, {x:-1, y:0}, {x:1, y:0}];
+        
+        // --- SAFETY BREAK: Verhindert Endlosschleifen/Freezes bei komplexen Maps ---
+        let ops = 0;
+        while (queue.length > 0) {
+            ops++;
+            if (ops > 500) break; // Notbremse!
+            
+            const current = queue.shift();
+            if (!dangerMap[current.y][current.x]) return current.firstMove || {x:0, y:0}; 
+            if (current.dist > 10) continue;
+            for (let d of dirs) {
+                const nx = current.x + d.x; const ny = current.y + d.y; const key = nx + "," + ny;
+                if (nx >= 0 && nx < GRID_W && ny >= 0 && ny < GRID_H && !visited.has(key)) {
+                    const isBlocked = isSolid(nx, ny);
+                    if (!isBlocked) {
+                        visited.add(key);
+                        queue.push({ x: nx, y: ny, firstMove: current.firstMove || d, dist: current.dist + 1 });
+                    }
+                }
+            }
+        }
+        return dirs[Math.floor(Math.random()*dirs.length)];
+    }
+
+    canEscapeAfterPlanting(gx, gy, currentDangerMap) {
+        const neighbors = [{x:0, y:-1}, {x:0, y:1}, {x:-1, y:0}, {x:1, y:0}];
+        const openNeighbors = neighbors.filter(d => {
+            const nx = gx+d.x; const ny = gy+d.y;
+            return !isSolid(nx, ny) && !currentDangerMap[ny][nx]; 
+        });
+        return openNeighbors.length > 0;
     }
 
     move(dx, dy) {
@@ -305,24 +417,17 @@ export class Player {
     }
 
     draw() {
-        // --- ÄNDERUNG: Zeichne auch tote Spieler solange Timer läuft ---
         if (!this.alive && this.deathTimer <= 0) return; 
-        // ----------------------------------------------------------------
-
+        
         if (this.invincibleTimer > 0 && Math.floor(Date.now() / 50) % 2 === 0) return;
         
         ctx.save();
         
-        // --- ASCHE EFFEKT ---
         if (!this.alive && this.deathTimer > 0) {
-            // Berechnung von 0.0 (Start Tod) bis 1.0 (Ende Tod)
             const progress = 1 - (this.deathTimer / 90); 
-            // Filter: Macht die Figur schwarz/grau und dunkler
             ctx.filter = `grayscale(100%) brightness(${Math.max(0, 0.5 - progress * 0.5)})`;
-            // Alpha: Blendet die Figur langsam aus
             ctx.globalAlpha = Math.max(0, 1 - progress);
         }
-        // --------------------
 
         const bob = Math.sin(this.bobTimer) * 2; 
         ctx.fillStyle = 'rgba(0,0,0,0.5)';
