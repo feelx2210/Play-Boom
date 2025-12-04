@@ -176,7 +176,6 @@ function update() {
     if (state.isGameOver) return;
     state.players.forEach(p => p.inFire = false);
 
-    // Hellfire Logic
     if (state.currentLevel.hasCentralFire) {
         if (!state.hellFireActive) {
             if (state.particles.some(p => p.isFire && p.gx === HELL_CENTER.x && p.gy === HELL_CENTER.y)) {
@@ -257,8 +256,7 @@ function update() {
 }
 
 function triggerHellFire() {
-    const duration = 180; // 3 Sekunden
-    const range = 5; 
+    const duration = 30; const range = 5; 
     const dirs = [{x:0, y:-1}, {x:0, y:1}, {x:-1, y:0}, {x:1, y:0}];
     dirs.forEach(d => {
         for (let i = 1; i <= range; i++) {
@@ -283,10 +281,10 @@ function explodeBomb(b) {
     const range = isBoostPad ? 15 : b.range; 
     
     let centerNapalm = b.napalm;
-    let centerDuration = b.napalm ? 720 : 60; // 12s vs 1s
+    let centerDuration = b.napalm ? 750 : 40;
     if (b.underlyingTile === TYPES.WATER) {
         centerNapalm = false;
-        centerDuration = 60; // Wasser löscht sofort (1s)
+        centerDuration = 40;
     }
 
     destroyItem(b.gx, b.gy); 
@@ -301,10 +299,10 @@ function explodeBomb(b) {
             const tile = state.grid[ty][tx];
             
             let tileNapalm = b.napalm;
-            let tileDuration = b.napalm ? 720 : 60;
+            let tileDuration = b.napalm ? 750 : 40;
             if (tile === TYPES.WATER) {
                 tileNapalm = false;
-                tileDuration = 60;
+                tileDuration = 40;
             }
 
             if (tile === TYPES.WALL_HARD) break;
@@ -324,25 +322,24 @@ function explodeBomb(b) {
 
 function extinguishNapalm(gx, gy) { state.particles.forEach(p => { if (p.isFire && p.isNapalm && p.gx === gx && p.gy === gy) p.life = 0; }); }
 function destroyItem(x, y) { if (state.items[y][x] !== ITEMS.NONE) { state.items[y][x] = ITEMS.NONE; createFloatingText(x * TILE_SIZE, y * TILE_SIZE, "ASHES", "#555555"); for(let i=0; i<5; i++) state.particles.push({ x: x * TILE_SIZE + TILE_SIZE/2, y: y * TILE_SIZE + TILE_SIZE/2, vx: (Math.random()-0.5)*2, vy: (Math.random()-0.5)*2, life: 30, color: '#333333', size: Math.random()*3 }); } }
-function createFire(gx, gy, duration, isNapalm = false) { state.particles.push({ gx: gx, gy: gy, isFire: true, isNapalm: isNapalm, life: duration, color: duration > 60 ? '#ff4400' : '#ffaa00' }); }
-function destroyWall(x, y) { state.grid[y][x] = TYPES.EMPTY; for(let i=0; i<5; i++) state.particles.push({ x: x * TILE_SIZE + TILE_SIZE/2, y: y * TILE_SIZE + TILE_SIZE/2, vx: (Math.random()-0.5)*4, vy: (Math.random()-0.5)*4, life: 20, color: '#882222', size: Math.random()*5 }); }
-function killPlayer(p) { 
-    if (p.invincibleTimer > 0 || !p.alive) return; 
-    p.alive = false; 
-    p.deathTimer = 90; 
-    createFloatingText(p.x, p.y, "ELIMINATED", "#ff0000"); 
-    
-    for(let i=0; i<15; i++) {
-        state.particles.push({ 
-            x: p.x + 24, y: p.y + 24, 
-            vx: (Math.random()-0.5)*6, vy: (Math.random()-0.5)*6, 
-            life: 60, color: '#666666', size: 4 
-        });
-    }
+
+// --- HIER IST DIE ÄNDERUNG: CREATE FIRE MIT MAXLIFE ---
+function createFire(gx, gy, duration, isNapalm = false) { 
+    state.particles.push({ 
+        gx: gx, 
+        gy: gy, 
+        isFire: true, 
+        isNapalm: isNapalm, 
+        life: duration, 
+        maxLife: duration // NEU: Für Phasenberechnung
+    }); 
 }
+// -----------------------------------------------------
+
+function destroyWall(x, y) { state.grid[y][x] = TYPES.EMPTY; for(let i=0; i<5; i++) state.particles.push({ x: x * TILE_SIZE + TILE_SIZE/2, y: y * TILE_SIZE + TILE_SIZE/2, vx: (Math.random()-0.5)*4, vy: (Math.random()-0.5)*4, life: 20, color: '#882222', size: Math.random()*5 }); }
+function killPlayer(p) { if (p.invincibleTimer > 0 || !p.alive) return; p.alive = false; p.deathTimer = 90; createFloatingText(p.x, p.y, "ELIMINATED", "#ff0000"); for(let i=0; i<15; i++) state.particles.push({ x: p.x + 24, y: p.y + 24, vx: (Math.random()-0.5)*6, vy: (Math.random()-0.5)*6, life: 60, color: '#666666', size: 4 }); }
 function endGame(msg) { if (state.isGameOver) return; state.isGameOver = true; setTimeout(() => { document.getElementById('go-message').innerText = msg; document.getElementById('game-over').classList.remove('hidden'); }, 3000); }
 
-// --- SAFE GAME LOOP ---
 function gameLoop() {
     if (!document.getElementById('main-menu').classList.contains('hidden')) { } 
     else if (!state.isPaused) { 
@@ -357,7 +354,6 @@ function gameLoop() {
     }
     gameLoopId = requestAnimationFrame(gameLoop);
 }
-// ----------------------
 
 // Start
 window.showMenu();
