@@ -1,352 +1,334 @@
-import { TILE_SIZE, GRID_W, GRID_H, TYPES, ITEMS, LEVELS, CHARACTERS, BOOST_PADS, HELL_CENTER, keyBindings } from './constants.js';
+import { TILE_SIZE, GRID_W, GRID_H, TYPES, BOMB_MODES, ITEMS, keyBindings } from './constants.js';
 import { state } from './state.js';
-import { createFloatingText, isSolid } from './utils.js';
-import { draw, drawLevelPreview, drawCharacterSprite } from './graphics.js';
-import { Player } from './player.js';
+import { isSolid, createFloatingText } from './utils.js';
+import { drawCharacterSprite } from './graphics.js';
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
-canvas.width = GRID_W * TILE_SIZE;
-canvas.height = GRID_H * TILE_SIZE;
 
-let gameLoopId;
-
-// --- MENU LOGIC ---
-function initMenu() {
-    const charContainer = document.getElementById('char-select');
-    charContainer.innerHTML = '';
-    const levelContainer = document.getElementById('level-select');
-    levelContainer.innerHTML = '';
-    
-    if (state.menuState === 0) {
-        charContainer.classList.add('active-group'); charContainer.classList.remove('inactive-group');
-        levelContainer.classList.add('inactive-group'); levelContainer.classList.remove('active-group');
-        document.getElementById('start-game-btn').classList.remove('focused');
-    } else if (state.menuState === 1) {
-        charContainer.classList.add('inactive-group'); charContainer.classList.remove('active-group');
-        levelContainer.classList.add('active-group'); levelContainer.classList.remove('inactive-group');
-        document.getElementById('start-game-btn').classList.remove('focused');
-    } else if (state.menuState === 2) {
-        charContainer.classList.add('inactive-group'); levelContainer.classList.add('inactive-group');
-        document.getElementById('start-game-btn').classList.add('focused');
+export class Player {
+    constructor(id, x, y, charDef, isBot = false) {
+        this.id = id;
+        this.charDef = charDef; 
+        this.name = charDef.name;
+        this.startX = x * TILE_SIZE;
+        this.startY = y * TILE_SIZE;
+        this.x = this.startX; 
+        this.y = this.startY;
+        this.gridX = x; this.gridY = y;
+        this.isBot = isBot;
+        this.alive = true;
+        this.invincibleTimer = 0;
+        this.fireTimer = 0;
+        this.speed = 2; 
+        this.maxBombs = 1;
+        this.activeBombs = 0;
+        this.bombRange = 1;
+        this.hasNapalm = false; this.napalmTimer = 0;
+        this.hasRolling = false; this.rollingTimer = 0;
+        this.currentBombMode = BOMB_MODES.STANDARD;
+        this.lastDir = {x: 0, y: 1}; 
+        this.skullEffect = null; this.skullTimer = 0;
+        this.targetX = x; this.targetY = y; this.changeDirTimer = 0; 
+        this.bobTimer = 0;
+        // NEU: Timer für Todesanimation
+        this.deathTimer = 0;
     }
 
-    CHARACTERS.forEach((char, index) => {
-        const div = document.createElement('div');
-        div.className = `option-card ${index === state.selectedCharIndex ? 'selected' : ''}`;
-        div.onclick = () => { state.menuState = 0; state.selectedCharIndex = index; initMenu(); };
-        const pCanvas = document.createElement('canvas'); pCanvas.width=48; pCanvas.height=48; pCanvas.className='preview-canvas';
-        drawCharacterSprite(pCanvas.getContext('2d'), 24, 36, char);
-        div.appendChild(pCanvas);
-        const label = document.createElement('div'); label.className = 'card-label'; label.innerText = char.name;
-        div.appendChild(label);
-        charContainer.appendChild(div);
-    });
-
-    Object.keys(LEVELS).forEach((key) => {
-        const lvl = LEVELS[key];
-        const div = document.createElement('div');
-        const isSelected = key === state.selectedLevelKey;
-        div.className = `option-card ${isSelected ? 'selected' : ''}`;
-        div.onclick = () => { state.menuState = 1; state.selectedLevelKey = key; initMenu(); };
-        const lCanvas = document.createElement('canvas'); lCanvas.width=48; lCanvas.height=48; lCanvas.className='preview-canvas';
-        drawLevelPreview(lCanvas.getContext('2d'), 48, 48, lvl);
-        div.appendChild(lCanvas);
-        const label = document.createElement('div'); label.className = 'card-label'; label.innerText = lvl.name;
-        div.appendChild(label);
-        levelContainer.appendChild(div);
-    });
-}
-
-// Global functions
-window.startGame = function() {
-    document.getElementById('main-menu').classList.add('hidden');
-    document.getElementById('game-over').classList.add('hidden');
-    document.getElementById('ui-layer').classList.remove('hidden');
-    document.getElementById('pause-btn').classList.remove('hidden'); 
-
-    const userChar = CHARACTERS[state.selectedCharIndex];
-    state.currentLevel = LEVELS[state.selectedLevelKey];
-    
-    const container = document.getElementById('game-container');
-    container.style.boxShadow = `0 0 20px ${state.currentLevel.glow}`;
-    container.style.borderColor = state.currentLevel.border;
-    document.getElementById('p1-name').innerText = userChar.name.toUpperCase();
-
-    state.grid = []; state.items = []; state.bombs = []; state.particles = []; state.players = [];
-    state.isGameOver = false; state.isPaused = false;
-    state.hellFireTimer = 0; state.hellFirePhase = 'IDLE'; state.hellFireActive = false;
-
-    for (let y = 0; y < GRID_H; y++) {
-        let row = []; let itemRow = [];
-        for (let x = 0; x < GRID_W; x++) {
-            if (x === 0 || x === GRID_W - 1 || y === 0 || y === GRID_H - 1) row.push(TYPES.WALL_HARD);
-            else if (state.currentLevel.id === 'jungle' && y === 7 && (x === 3 || x === 7 || x === 11)) row.push(TYPES.BRIDGE);
-            else if (state.currentLevel.id === 'jungle' && y === 7) row.push(TYPES.WATER);
-            else if (x % 2 === 0 && y % 2 === 0) row.push(TYPES.WALL_HARD);
-            else if ((state.currentLevel.id === 'hell' || state.currentLevel.id === 'ice') && BOOST_PADS.some(p => p.x === x && p.y === y)) row.push(TYPES.EMPTY); 
-            else if (Math.random() < 0.7) row.push(TYPES.WALL_SOFT);
-            else row.push(TYPES.EMPTY);
-            itemRow.push(ITEMS.NONE);
-        }
-        state.grid.push(row); state.items.push(itemRow);
-    }
-    const corners = [{x: 1, y: 1}, {x: 1, y: 2}, {x: 2, y: 1}, {x: GRID_W-2, y: 1}, {x: GRID_W-2, y: 2}, {x: GRID_W-3, y: 1}, {x: 1, y: GRID_H-2}, {x: 1, y: GRID_H-3}, {x: 2, y: GRID_H-2}, {x: GRID_W-2, y: GRID_H-2}, {x: GRID_W-3, y: GRID_H-2}, {x: GRID_W-2, y: GRID_H-3}];
-    if (state.currentLevel.id === 'jungle') for(let x=1; x<GRID_W-1; x++) state.items[7][x] = ITEMS.NONE; 
-    corners.forEach(p => state.grid[p.y][p.x] = TYPES.EMPTY);
-    if (state.currentLevel.hasCentralFire) { state.grid[HELL_CENTER.y][HELL_CENTER.x] = TYPES.EMPTY; state.items[HELL_CENTER.y][HELL_CENTER.x] = ITEMS.NONE; }
-
-    distributeItems();
-
-    state.players.push(new Player(1, 1, 1, userChar, false));
-    const availableChars = CHARACTERS.filter(c => c.id !== userChar.id);
-    state.players.push(new Player(2, GRID_W-2, GRID_H-2, availableChars[0] || CHARACTERS[1], true));
-    state.players.push(new Player(3, GRID_W-2, 1, availableChars[1] || CHARACTERS[2], true));
-    state.players.push(new Player(4, 1, GRID_H-2, availableChars[2] || CHARACTERS[3], true));
-
-    document.getElementById('bomb-type').innerText = '⚫';
-    gameLoopId = requestAnimationFrame(gameLoop);
-};
-
-function distributeItems() {
-    let softWalls = [];
-    for(let y=0; y<GRID_H; y++) for(let x=0; x<GRID_W; x++) if (state.grid[y][x] === TYPES.WALL_SOFT) softWalls.push({x,y});
-    softWalls.sort(() => Math.random() - 0.5);
-    const itemCounts = [ {type: ITEMS.BOMB_UP, count: 8}, {type: ITEMS.RANGE_UP, count: 8}, {type: ITEMS.SPEED_UP, count: 4}, {type: ITEMS.NAPALM, count: 2}, {type: ITEMS.ROLLING, count: 3}, {type: ITEMS.SKULL, count: 4} ];
-    let idx = 0;
-    itemCounts.forEach(def => {
-        for(let i=0; i<def.count; i++) if (idx < softWalls.length) { state.items[softWalls[idx].y][softWalls[idx].x] = def.type; idx++; }
-    });
-}
-
-window.togglePause = function() {
-    if (state.isGameOver) { window.showMenu(); return; }
-    if (!document.getElementById('main-menu').classList.contains('hidden')) return;
-    state.isPaused = !state.isPaused;
-    document.getElementById('pause-menu').classList.toggle('hidden', !state.isPaused);
-};
-
-window.quitGame = function() {
-    state.isPaused = false;
-    document.getElementById('pause-menu').classList.add('hidden');
-    window.showMenu();
-};
-
-window.showMenu = function() {
-    cancelAnimationFrame(gameLoopId);
-    document.getElementById('main-menu').classList.remove('hidden');
-    document.getElementById('game-over').classList.add('hidden');
-    document.getElementById('ui-layer').classList.add('hidden');
-    document.getElementById('pause-btn').classList.add('hidden'); 
-    document.getElementById('pause-menu').classList.add('hidden'); 
-    document.getElementById('controls-menu').classList.add('hidden');
-    state.menuState = 0;
-    initMenu();
-};
-
-window.addEventListener('keydown', e => {
-    if (!document.getElementById('main-menu').classList.contains('hidden')) {
-        const levelKeys = Object.keys(LEVELS);
-        const currentLevelIndex = levelKeys.indexOf(state.selectedLevelKey);
-        if (state.menuState === 0) {
-            if (e.code === 'ArrowLeft') { state.selectedCharIndex = (state.selectedCharIndex - 1 + CHARACTERS.length) % CHARACTERS.length; initMenu(); }
-            else if (e.code === 'ArrowRight') { state.selectedCharIndex = (state.selectedCharIndex + 1) % CHARACTERS.length; initMenu(); }
-            else if (e.code === 'Enter' || e.code === 'Space' || e.code === 'ArrowDown') { state.menuState = 1; initMenu(); }
-        } else if (state.menuState === 1) {
-            if (e.code === 'ArrowLeft') { state.selectedLevelKey = levelKeys[(currentLevelIndex - 1 + levelKeys.length) % levelKeys.length]; initMenu(); }
-            else if (e.code === 'ArrowRight') { state.selectedLevelKey = levelKeys[(currentLevelIndex + 1) % levelKeys.length]; initMenu(); }
-            
-            // ÄNDERUNG: ArrowDown hinzugefügt!
-            else if (e.code === 'Enter' || e.code === 'Space' || e.code === 'ArrowDown') { state.menuState = 2; initMenu(); }
-            
-            else if (e.code === 'ArrowUp' || e.code === 'Escape') { state.menuState = 0; initMenu(); }
-        } else if (state.menuState === 2) {
-            if (e.code === 'Enter' || e.code === 'Space') window.startGame();
-            else if (e.code === 'ArrowUp' || e.code === 'Escape') { state.menuState = 1; initMenu(); }
-        }
-        return;
-    }
-    state.keys[e.code] = true;
-    if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)) e.preventDefault();
-    if (e.code === keyBindings.CHANGE && state.players[0]) state.players[0].cycleBombType();
-    if (e.key.toLowerCase() === 'p' || e.code === 'Escape') window.togglePause();
-});
-window.addEventListener('keyup', e => { state.keys[e.code] = false; });
-
-// --- GAME LOGIC ---
-
-function update() {
-    if (state.isGameOver) return;
-    state.players.forEach(p => p.inFire = false);
-
-    // Hellfire Logic
-    if (state.currentLevel.hasCentralFire) {
-        if (!state.hellFireActive) {
-            if (state.particles.some(p => p.isFire && p.gx === HELL_CENTER.x && p.gy === HELL_CENTER.y)) {
-                state.hellFireActive = true; state.hellFirePhase = 'WARNING'; state.hellFireTimer = 0;
-                createFloatingText(HELL_CENTER.x * TILE_SIZE, HELL_CENTER.y * TILE_SIZE, "ACTIVATED!", "#ff0000");
+    update() {
+        // --- NEUE TODES-LOGIK ---
+        if (!this.alive) {
+            if (this.deathTimer > 0) {
+                this.deathTimer--;
             }
-        } else {
-            state.hellFireTimer++;
-            if (state.hellFirePhase === 'IDLE' && state.hellFireTimer >= 2200) { state.hellFireTimer = 0; state.hellFirePhase = 'WARNING'; createFloatingText(HELL_CENTER.x * TILE_SIZE, HELL_CENTER.y * TILE_SIZE, "!", "#ff0000"); }
-            else if (state.hellFirePhase === 'WARNING' && state.hellFireTimer >= 225) { state.hellFireTimer = 0; state.hellFirePhase = 'IDLE'; triggerHellFire(); }
+            return; // Keine weitere Bewegung/Update für tote Spieler
         }
-    }
+        // ------------------------
 
-    for (let i = state.bombs.length - 1; i >= 0; i--) {
-        let b = state.bombs[i]; b.timer--;
-        if (b.isRolling) {
-            b.px += b.rollDir.x * b.rollSpeed; b.py += b.rollDir.y * b.rollSpeed;
-            const nextGx = Math.floor((b.px + TILE_SIZE/2) / TILE_SIZE);
-            const nextGy = Math.floor((b.py + TILE_SIZE/2) / TILE_SIZE);
-            const hitFire = state.particles.some(p => p.isFire && p.gx === nextGx && p.gy === nextGy);
-            if (hitFire) { b.isRolling = false; b.gx = nextGx; b.gy = nextGy; b.px = b.gx * TILE_SIZE; b.py = b.gy * TILE_SIZE; b.timer = 0; }
-            else {
-                let collision = false;
-                if (nextGx < 0 || nextGx >= GRID_W || nextGy < 0 || nextGy >= GRID_H) collision = true;
-                else if (state.grid[nextGy][nextGx] === TYPES.WALL_HARD || state.grid[nextGy][nextGx] === TYPES.WALL_SOFT || state.grid[nextGy][nextGx] === TYPES.BOMB) collision = true;
-                if (!collision) {
-                     const bRect = { l: b.px, r: b.px + TILE_SIZE, t: b.py, b: b.py + TILE_SIZE };
-                     const hitPlayer = state.players.find(p => { if (!p.alive) return false; if (b.walkableIds.includes(p.id)) return false; const size = TILE_SIZE * 0.7; const offset = (TILE_SIZE - size) / 2; const pRect = { l: p.x + offset, r: p.x + size + offset, t: p.y + offset, b: p.y + size + offset }; return (bRect.l < pRect.r && bRect.r > pRect.l && bRect.t < pRect.b && bRect.b > pRect.t); });
-                     if (hitPlayer) collision = true;
+        if (this.id === 1) this.updateHud();
+
+        this.bobTimer += 0.2;
+
+        if (this.hasRolling) {
+            this.rollingTimer--;
+            if (this.rollingTimer <= 0) {
+                this.hasRolling = false;
+                if (this.currentBombMode === BOMB_MODES.ROLLING) {
+                    this.currentBombMode = BOMB_MODES.STANDARD;
+                    this.updateHud();
                 }
-                if (collision) {
-                    b.isRolling = false; b.gx = Math.round(b.px / TILE_SIZE); b.gy = Math.round(b.py / TILE_SIZE);
-                    let occupied = state.players.some(p => { if (!p.alive) return false; const pGx = Math.round(p.x / TILE_SIZE); const pGy = Math.round(p.y / TILE_SIZE); return pGx === b.gx && pGy === b.gy && !b.walkableIds.includes(p.id); });
-                    if (isSolid(b.gx, b.gy) || occupied) { b.gx -= b.rollDir.x; b.gy -= b.rollDir.y; }
-                    b.px = b.gx * TILE_SIZE; b.py = b.gy * TILE_SIZE; 
-                    b.underlyingTile = state.grid[b.gy][b.gx]; 
-                    state.grid[b.gy][b.gx] = TYPES.BOMB;
-                } else { b.gx = nextGx; b.gy = nextGy; }
+                createFloatingText(this.x, this.y, "ROLLING LOST", "#cccccc");
             }
         }
-        b.walkableIds = b.walkableIds.filter(pid => { const p = state.players.find(pl => pl.id === pid); if (!p) return false; const size = TILE_SIZE * 0.7; const offset = (TILE_SIZE - size) / 2; const pLeft = p.x + offset; const pRight = pLeft + size; const pTop = p.y + offset; const pBottom = pTop + size; const bLeft = b.px; const bRight = bLeft + TILE_SIZE; const bTop = b.py; const bBottom = bTop + TILE_SIZE; return (pLeft < bRight && pRight > bLeft && pTop < bBottom && pBottom > bTop); });
-        if (b.timer <= 0) { explodeBomb(b); state.bombs.splice(i, 1); }
-    }
-
-    for (let i = state.particles.length - 1; i >= 0; i--) {
-        let p = state.particles[i]; p.life--;
-        if (p.text) p.y += p.vy;
-        if (p.isFire) {
-            const fireX = p.gx * TILE_SIZE; const fireY = p.gy * TILE_SIZE;
-            const tolerance = 6; const fkLeft = fireX + tolerance; const fkRight = fireX + TILE_SIZE - tolerance; const fkTop = fireY + tolerance; const fkBottom = fireY + TILE_SIZE - tolerance;
-            state.players.forEach(pl => {
-                if (!pl.alive) return;
-                const hurtSize = 24; const pCx = pl.x + TILE_SIZE/2; const pCy = pl.y + TILE_SIZE/2;
-                const plLeft = pCx - hurtSize/2; const plRight = pCx + hurtSize/2; const plTop = pCy - hurtSize/2; const plBottom = pCy + hurtSize/2;
-                if (plLeft < fkRight && plRight > fkLeft && plTop < fkBottom && plBottom > fkTop) pl.inFire = true;
-            });
-            const hitBombIndex = state.bombs.findIndex(b => b.gx === p.gx && b.gy === p.gy);
-            if (hitBombIndex !== -1) { const chainedBomb = state.bombs[hitBombIndex]; if (chainedBomb.timer > 1) { if(chainedBomb.isRolling) { chainedBomb.isRolling = false; chainedBomb.px = chainedBomb.gx * TILE_SIZE; chainedBomb.py = chainedBomb.gy * TILE_SIZE; } chainedBomb.timer = 0; } }
-        }
-        if (p.life <= 0) state.particles.splice(i, 1);
-    }
-
-    state.players.forEach(p => { if (p.inFire) { p.fireTimer++; if (p.fireTimer >= 12) { killPlayer(p); p.fireTimer = 0; } } else p.fireTimer = 0; });
-    let aliveCount = 0; let livingPlayers = [];
-    state.players.forEach(p => { p.update(); if (p.alive) { aliveCount++; livingPlayers.push(p); } });
-
-    for (let i = 0; i < livingPlayers.length; i++) {
-        for (let j = i + 1; j < livingPlayers.length; j++) {
-            const p1 = livingPlayers[i]; const p2 = livingPlayers[j];
-            const dist = Math.hypot(p1.x - p2.x, p1.y - p2.y);
-            if (dist < TILE_SIZE * 0.8) {
-                if (p1.skullEffect && !p2.skullEffect) { p2.skullEffect = p1.skullEffect; p2.skullTimer = 600; createFloatingText(p2.x, p2.y, "INFECTED!", "#ff00ff"); }
-                else if (p2.skullEffect && !p1.skullEffect) { p1.skullEffect = p2.skullEffect; p1.skullTimer = 600; createFloatingText(p1.x, p1.y, "INFECTED!", "#ff00ff"); }
+        if (this.hasNapalm) {
+            this.napalmTimer--;
+            if (this.napalmTimer <= 0) {
+                this.hasNapalm = false;
+                if (this.currentBombMode === BOMB_MODES.NAPALM) {
+                    this.currentBombMode = BOMB_MODES.STANDARD;
+                    this.updateHud();
+                }
+                createFloatingText(this.x, this.y, "NAPALM LOST", "#cccccc");
             }
         }
-    }
-    if (state.players.length > 1 && aliveCount <= 1) { const winner = livingPlayers.length > 0 ? livingPlayers[0] : null; endGame(winner ? winner.name + " WINS!" : "DRAW!"); }
-}
+        
+        if (this.invincibleTimer > 0) this.invincibleTimer--;
 
-function triggerHellFire() {
-    const duration = 30; const range = 5; 
-    const dirs = [{x:0, y:-1}, {x:0, y:1}, {x:-1, y:0}, {x:1, y:0}];
-    dirs.forEach(d => {
-        for (let i = 1; i <= range; i++) {
-            const tx = HELL_CENTER.x + (d.x * i); const ty = HELL_CENTER.y + (d.y * i);
-            if (tx < 0 || tx >= GRID_W || ty < 0 || ty >= GRID_H) break;
-            const tile = state.grid[ty][tx];
-            if (tile === TYPES.WALL_HARD) break;
-            else if (tile === TYPES.WALL_SOFT) { destroyWall(tx, ty); createFire(tx, ty, duration); break; } 
-            else { destroyItem(tx, ty); createFire(tx, ty, duration); }
+        let currentSpeed = this.speed;
+
+        if (this.skullEffect) {
+            this.skullTimer--;
+            if (this.skullTimer <= 0) {
+                this.skullEffect = null;
+                createFloatingText(this.x, this.y, "CURED!", "#00ff00");
+            } else {
+                if (this.skullEffect === 'sickness') {
+                    if (Math.random() < 0.05) this.plantBomb();
+                } else if (this.skullEffect === 'speed_rush') {
+                    currentSpeed *= 2;
+                } else if (this.skullEffect === 'slow') {
+                    currentSpeed *= 0.5;
+                }
+            }
         }
-    });
-}
 
-function explodeBomb(b) {
-    b.owner.activeBombs--; 
-    if (!b.isRolling) {
-        const fallbackTile = TYPES.EMPTY;
-        state.grid[b.gy][b.gx] = (b.underlyingTile !== undefined) ? b.underlyingTile : fallbackTile;
-    }
-    
-    const isBoostPad = (state.currentLevel.id === 'hell' || state.currentLevel.id === 'ice') && BOOST_PADS.some(p => p.x === b.gx && p.y === b.gy);
-    const range = isBoostPad ? 15 : b.range; 
-    
-    let centerNapalm = b.napalm;
-    let centerDuration = b.napalm ? 750 : 40;
-    if (b.underlyingTile === TYPES.WATER) {
-        centerNapalm = false;
-        centerDuration = 40;
-    }
+        const gx = Math.round(this.x / TILE_SIZE);
+        const gy = Math.round(this.y / TILE_SIZE);
+        if (gx >= 0 && gx < GRID_W && gy >= 0 && gy < GRID_H) {
+            if (state.grid[gy][gx] === TYPES.WATER) {
+                currentSpeed *= 0.5; 
+            }
+        }
 
-    destroyItem(b.gx, b.gy); 
-    extinguishNapalm(b.gx, b.gy); 
-    createFire(b.gx, b.gy, centerDuration, centerNapalm);
-    
-    const dirs = [{x:0, y:-1}, {x:0, y:1}, {x:-1, y:0}, {x:1, y:0}];
-    dirs.forEach(d => {
-        for (let i = 1; i <= range; i++) {
-            const tx = b.gx + (d.x * i); const ty = b.gy + (d.y * i);
-            if (tx < 0 || tx >= GRID_W || ty < 0 || ty >= GRID_H) break;
-            const tile = state.grid[ty][tx];
+        let dx = 0, dy = 0;
+        if (this.isBot) {
+            this.updateBot(currentSpeed);
+        } else {
+            if (state.keys[keyBindings.UP]) dy = -currentSpeed;
+            if (state.keys[keyBindings.DOWN]) dy = currentSpeed;
+            if (state.keys[keyBindings.LEFT]) dx = -currentSpeed;
+            if (state.keys[keyBindings.RIGHT]) dx = currentSpeed;
             
-            let tileNapalm = b.napalm;
-            let tileDuration = b.napalm ? 750 : 40;
-            if (tile === TYPES.WATER) {
-                tileNapalm = false;
-                tileDuration = 40;
+            if (dx !== 0 || dy !== 0) {
+                if (Math.abs(dx) > Math.abs(dy)) this.lastDir = {x: Math.sign(dx), y: 0};
+                else this.lastDir = {x: 0, y: Math.sign(dy)};
             }
+            
+            if (state.keys[keyBindings.BOMB]) { this.plantBomb(); state.keys[keyBindings.BOMB] = false; } 
+            
+            const size = TILE_SIZE * 0.85; 
+            const offset = (TILE_SIZE - size) / 2;
 
-            if (tile === TYPES.WALL_HARD) break;
-            else if (tile === TYPES.WALL_SOFT) { 
-                destroyWall(tx, ty); 
-                extinguishNapalm(tx, ty); 
-                createFire(tx, ty, tileDuration, tileNapalm); 
-                break; 
-            } else { 
-                destroyItem(tx, ty); 
-                extinguishNapalm(tx, ty); 
-                createFire(tx, ty, tileDuration, tileNapalm); 
+            const check = (x, y) => {
+                const gx = Math.floor(x / TILE_SIZE);
+                const gy = Math.floor(y / TILE_SIZE);
+                if (gx < 0 || gx >= GRID_W || gy < 0 || gy >= GRID_H) return true;
+                if (state.grid[gy][gx] === TYPES.WALL_HARD || state.grid[gy][gx] === TYPES.WALL_SOFT) return true;
+                const bomb = state.bombs.find(b => b.gx === gx && b.gy === gy);
+                if (bomb && !bomb.walkableIds.includes(this.id)) return true;
+                return false;
+            };
+
+            if (dx !== 0) {
+                const nextX = this.x + dx;
+                const xEdge = dx > 0 ? nextX + size + offset : nextX + offset;
+                const topY = this.y + offset;
+                const bottomY = this.y + size + offset;
+                if (!check(xEdge, topY) && !check(xEdge, bottomY)) this.x = nextX;
+                else if (check(xEdge, topY) && !check(xEdge, bottomY)) this.y += this.speed;
+                else if (!check(xEdge, topY) && check(xEdge, bottomY)) this.y -= this.speed;
+            }
+            if (dy !== 0) {
+                const nextY = this.y + dy;
+                const yEdge = dy > 0 ? nextY + size + offset : nextY + offset;
+                const leftX = this.x + offset;
+                const rightX = this.x + size + offset;
+                if (!check(leftX, yEdge) && !check(rightX, yEdge)) this.y = nextY;
+                else if (check(leftX, yEdge) && !check(rightX, yEdge)) this.x += this.speed;
+                else if (!check(leftX, yEdge) && check(rightX, yEdge)) this.x -= this.speed;
+            }
+            this.gridX = Math.round(this.x / TILE_SIZE);
+            this.gridY = Math.round(this.y / TILE_SIZE);
+        }
+
+        this.checkItem();
+    }
+
+    updateBot(speed) {
+        if (this.changeDirTimer <= 0) {
+            const dirs = [{x:0, y:-1}, {x:0, y:1}, {x:-1, y:0}, {x:1, y:0}];
+            this.botDir = dirs[Math.floor(Math.random()*dirs.length)];
+            this.changeDirTimer = 30;
+        }
+        if(!this.botDir) this.botDir = {x:0,y:0};
+        
+        this.move(this.botDir.x * speed, this.botDir.y * speed);
+        this.changeDirTimer--;
+    }
+
+    move(dx, dy) {
+        const size = TILE_SIZE * 0.85; 
+        const offset = (TILE_SIZE - size) / 2;
+        const check = (x, y) => {
+            const gx = Math.floor(x / TILE_SIZE);
+            const gy = Math.floor(y / TILE_SIZE);
+            if (gx < 0 || gx >= GRID_W || gy < 0 || gy >= GRID_H) return true;
+            if (state.grid[gy][gx] === TYPES.WALL_HARD || state.grid[gy][gx] === TYPES.WALL_SOFT) return true;
+            const bomb = state.bombs.find(b => b.gx === gx && b.gy === gy);
+            if (bomb && !bomb.walkableIds.includes(this.id)) return true;
+            return false;
+        };
+        if (dx !== 0) {
+            const nextX = this.x + dx;
+            const xEdge = dx > 0 ? nextX + size + offset : nextX + offset;
+            const topY = this.y + offset;
+            const bottomY = this.y + size + offset;
+            if (!check(xEdge, topY) && !check(xEdge, bottomY)) this.x = nextX;
+        }
+        if (dy !== 0) {
+            const nextY = this.y + dy;
+            const yEdge = dy > 0 ? nextY + size + offset : nextY + offset;
+            const leftX = this.x + offset;
+            const rightX = this.x + size + offset;
+            if (!check(leftX, yEdge) && !check(rightX, yEdge)) this.y = nextY;
+        }
+        this.gridX = Math.round(this.x / TILE_SIZE);
+        this.gridY = Math.round(this.y / TILE_SIZE);
+    }
+
+    cycleBombType() {
+        const modes = [BOMB_MODES.STANDARD];
+        if (this.hasNapalm) modes.push(BOMB_MODES.NAPALM);
+        if (this.hasRolling) modes.push(BOMB_MODES.ROLLING);
+        let idx = modes.indexOf(this.currentBombMode);
+        if (idx === -1) idx = 0;
+        this.currentBombMode = modes[(idx + 1) % modes.length];
+        this.updateHud();
+    }
+
+    updateHud() {
+        if (this.id !== 1) return;
+        const elType = document.getElementById('bomb-type');
+        if (elType) {
+            switch(this.currentBombMode) {
+                case BOMB_MODES.STANDARD: elType.innerText = '⚫'; break;
+                case BOMB_MODES.NAPALM: elType.innerText = '☢️'; break;
+                case BOMB_MODES.ROLLING: elType.innerText = '🎳'; break;
             }
         }
-    });
-}
+        const elBombs = document.getElementById('hud-bombs');
+        if (elBombs) elBombs.innerText = `💣 ${this.maxBombs}`;
+        const elFire = document.getElementById('hud-fire');
+        if (elFire) elFire.innerText = `🔥 ${this.bombRange}`;
+    }
 
-function extinguishNapalm(gx, gy) { state.particles.forEach(p => { if (p.isFire && p.isNapalm && p.gx === gx && p.gy === gy) p.life = 0; }); }
-function destroyItem(x, y) { if (state.items[y][x] !== ITEMS.NONE) { state.items[y][x] = ITEMS.NONE; createFloatingText(x * TILE_SIZE, y * TILE_SIZE, "ASHES", "#555555"); for(let i=0; i<5; i++) state.particles.push({ x: x * TILE_SIZE + TILE_SIZE/2, y: y * TILE_SIZE + TILE_SIZE/2, vx: (Math.random()-0.5)*2, vy: (Math.random()-0.5)*2, life: 30, color: '#333333', size: Math.random()*3 }); } }
-function createFire(gx, gy, duration, isNapalm = false) { state.particles.push({ gx: gx, gy: gy, isFire: true, isNapalm: isNapalm, life: duration, color: duration > 60 ? '#ff4400' : '#ffaa00' }); }
-function destroyWall(x, y) { state.grid[y][x] = TYPES.EMPTY; for(let i=0; i<5; i++) state.particles.push({ x: x * TILE_SIZE + TILE_SIZE/2, y: y * TILE_SIZE + TILE_SIZE/2, vx: (Math.random()-0.5)*4, vy: (Math.random()-0.5)*4, life: 20, color: '#882222', size: Math.random()*5 }); }
-function killPlayer(p) { if (p.invincibleTimer > 0 || !p.alive) return; p.alive = false; createFloatingText(p.x, p.y, "ELIMINATED", "#ff0000"); for(let i=0; i<15; i++) state.particles.push({ x: p.x + 24, y: p.y + 24, vx: (Math.random()-0.5)*8, vy: (Math.random()-0.5)*8, life: 60, color: p.color, size: 5 }); }
-function endGame(msg) { if (state.isGameOver) return; state.isGameOver = true; setTimeout(() => { document.getElementById('go-message').innerText = msg; document.getElementById('game-over').classList.remove('hidden'); }, 3000); }
+    plantBomb() {
+        const rollingBomb = state.bombs.find(b => b.owner === this && b.isRolling);
+        if (rollingBomb) {
+            rollingBomb.isRolling = false;
+            rollingBomb.gx = Math.round(rollingBomb.px / TILE_SIZE);
+            rollingBomb.gy = Math.round(rollingBomb.py / TILE_SIZE);
+            rollingBomb.px = rollingBomb.gx * TILE_SIZE;
+            rollingBomb.py = rollingBomb.gy * TILE_SIZE;
+            rollingBomb.underlyingTile = state.grid[rollingBomb.gy][rollingBomb.gx];
+            state.grid[rollingBomb.gy][rollingBomb.gx] = TYPES.BOMB;
+            return;
+        }
 
-// --- SAFE GAME LOOP ---
-function gameLoop() {
-    if (!document.getElementById('main-menu').classList.contains('hidden')) { } 
-    else if (!state.isPaused) { 
-        try {
-            update(); 
-            draw(ctx, canvas); 
-        } catch (error) {
-            console.error("Game Crashed:", error);
-            alert("Game Crashed! Check Console for details.\n" + error.message);
-            state.isPaused = true;
+        if (this.skullEffect === 'cant_plant') return;
+        if (this.activeBombs >= this.maxBombs) return;
+        const gx = Math.round(this.x / TILE_SIZE);
+        const gy = Math.round(this.y / TILE_SIZE);
+        const tile = state.grid[gy][gx];
+
+        let canPlant = (tile === TYPES.EMPTY);
+        if (state.currentLevel.id === 'jungle') {
+            if (tile === TYPES.WATER || tile === TYPES.BRIDGE) canPlant = true;
+        }
+
+        if (!canPlant) return; 
+
+        let isRolling = (this.currentBombMode === BOMB_MODES.ROLLING);
+        let isNapalm = (this.currentBombMode === BOMB_MODES.NAPALM);
+
+        const bomb = {
+            owner: this,
+            gx: gx, gy: gy,
+            px: gx * TILE_SIZE, py: gy * TILE_SIZE,
+            timer: 200, 
+            range: this.bombRange, 
+            napalm: isNapalm,
+            isRolling: isRolling,
+            isBlue: isRolling, 
+            underlyingTile: tile,
+            walkableIds: state.players.filter(p => {
+                const pGx = Math.round(p.x / TILE_SIZE);
+                const pGy = Math.round(p.y / TILE_SIZE);
+                return pGx === gx && pGy === gy;
+            }).map(p => p.id)
+        };
+
+        if (isRolling) {
+            bomb.rollDir = {...this.lastDir};
+            bomb.rollSpeed = 4;
+        } else {
+            state.grid[gy][gx] = TYPES.BOMB;
+        }
+        state.bombs.push(bomb);
+        this.activeBombs++;
+    }
+
+    checkItem() {
+        const gx = Math.floor((this.x + TILE_SIZE/2) / TILE_SIZE);
+        const gy = Math.floor((this.y + TILE_SIZE/2) / TILE_SIZE);
+        if (gx >= 0 && gx < GRID_W && gy >= 0 && gy < GRID_H) {
+            if (state.items[gy][gx] !== ITEMS.NONE) {
+                this.applyItem(state.items[gy][gx]);
+                state.items[gy][gx] = ITEMS.NONE;
+            }
         }
     }
-    gameLoopId = requestAnimationFrame(gameLoop);
-}
-// ----------------------
 
-// Start
-window.showMenu();
+    applyItem(type) {
+        switch(type) {
+            case ITEMS.BOMB_UP: this.maxBombs++; createFloatingText(this.x, this.y, "+1 BOMB"); break;
+            case ITEMS.RANGE_UP: this.bombRange++; createFloatingText(this.x, this.y, "FIRE UP"); break;
+            case ITEMS.SPEED_UP: this.speed = Math.min(this.speed+1, 8); createFloatingText(this.x, this.y, "SPEED UP"); break;
+            case ITEMS.NAPALM: this.hasNapalm = true; this.napalmTimer = 3600; createFloatingText(this.x, this.y, "NAPALM!", "#ff0000"); break;
+            case ITEMS.ROLLING: this.hasRolling = true; this.rollingTimer = 3600; createFloatingText(this.x, this.y, "ROLLING!", "#ffffff"); break;
+            case ITEMS.SKULL: 
+                const effects = ['sickness', 'speed_rush', 'slow', 'cant_plant'];
+                const effect = effects[Math.floor(Math.random()*effects.length)];
+                this.skullEffect = effect; this.skullTimer = 600;
+                createFloatingText(this.x, this.y, "CURSED: "+effect.toUpperCase(), '#ff00ff'); break;
+        }
+    }
+
+    draw() {
+        // --- ÄNDERUNG: Zeichne auch tote Spieler solange Timer läuft ---
+        if (!this.alive && this.deathTimer <= 0) return; 
+        // ----------------------------------------------------------------
+
+        if (this.invincibleTimer > 0 && Math.floor(Date.now() / 50) % 2 === 0) return;
+        
+        ctx.save();
+        
+        // --- ASCHE EFFEKT ---
+        if (!this.alive && this.deathTimer > 0) {
+            // Berechnung von 0.0 (Start Tod) bis 1.0 (Ende Tod)
+            const progress = 1 - (this.deathTimer / 90); 
+            // Filter: Macht die Figur schwarz/grau und dunkler
+            ctx.filter = `grayscale(100%) brightness(${Math.max(0, 0.5 - progress * 0.5)})`;
+            // Alpha: Blendet die Figur langsam aus
+            ctx.globalAlpha = Math.max(0, 1 - progress);
+        }
+        // --------------------
+
+        const bob = Math.sin(this.bobTimer) * 2; 
+        ctx.fillStyle = 'rgba(0,0,0,0.5)';
+        ctx.beginPath(); ctx.ellipse(this.x + TILE_SIZE/2, this.y + TILE_SIZE - 5, 10, 5, 0, 0, Math.PI*2); ctx.fill();
+        drawCharacterSprite(ctx, this.x + TILE_SIZE/2, this.y + TILE_SIZE/2 + bob, this.charDef, !!this.skullEffect, this.lastDir);
+        
+        ctx.restore();
+    }
+}
