@@ -21,11 +21,7 @@ export class Player {
         this.alive = true;
         this.invincibleTimer = 0;
         this.fireTimer = 0;
-        
-        // HIER: Dezimalwerte sind erlaubt! 
-        // 2.5 ist ein guter Mittelweg. Versuch auch 1.5 oder 2.2
-        this.speed = 2; 
-        
+        this.speed = 2.5; 
         this.maxBombs = 1;
         this.activeBombs = 0;
         this.bombRange = 1;
@@ -224,7 +220,15 @@ export class Player {
         if (this.activeBombs >= this.maxBombs) return;
         const gx = Math.round(this.x / TILE_SIZE);
         const gy = Math.round(this.y / TILE_SIZE);
-        if (state.grid[gy][gx] !== TYPES.EMPTY) return; 
+        const tile = state.grid[gy][gx];
+
+        // LOGIK UPDATE: Auf Water/Bridge im Jungle erlaubt
+        let canPlant = (tile === TYPES.EMPTY);
+        if (state.currentLevel.id === 'jungle') {
+            if (tile === TYPES.WATER || tile === TYPES.BRIDGE) canPlant = true;
+        }
+
+        if (!canPlant) return; 
 
         let isRolling = (this.currentBombMode === BOMB_MODES.ROLLING);
         let isNapalm = (this.currentBombMode === BOMB_MODES.NAPALM);
@@ -238,6 +242,8 @@ export class Player {
             napalm: isNapalm,
             isRolling: isRolling,
             isBlue: isRolling, 
+            // WICHTIG: Wir merken uns, was unter der Bombe war (Wasser, Brücke, Leer)
+            underlyingTile: tile,
             walkableIds: state.players.filter(p => {
                 const pGx = Math.round(p.x / TILE_SIZE);
                 const pGy = Math.round(p.y / TILE_SIZE);
