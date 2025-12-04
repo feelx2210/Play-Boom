@@ -5,7 +5,7 @@ export const GRID_H = 15;
 export const COLORS = {
     EXPLOSION_CORE: '#ffffcc'
 };
-
+//test
 export const keyBindings = {
     UP: 'ArrowUp',
     DOWN: 'ArrowDown',
