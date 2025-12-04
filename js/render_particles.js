@@ -1,7 +1,7 @@
 import { TILE_SIZE } from './constants.js';
 import { state } from './state.js';
 
-// --- FLAMMEN & EFFEKTE ZEICHNEN ---
+// --- FLAMMEN & EFFEKTE ZEICHNEN AUSGELAGERT---
 
 function drawFlame(ctx, x, y, radius, innerColor, outerColor, jaggy = 0.2) {
     const grad = ctx.createRadialGradient(x, y, radius * 0.2, x, y, radius);
