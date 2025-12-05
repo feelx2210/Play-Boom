@@ -2,8 +2,6 @@ import { state } from './state.js';
 import { TYPES, ITEMS, BOOST_PADS, OIL_PADS, HELL_CENTER, TILE_SIZE, GRID_W, GRID_H } from './constants.js';
 import { createFloatingText } from './utils.js';
 
-// --- HILFSFUNKTIONEN FÜR SPIELMECHANIK ---
-
 export function triggerHellFire() {
     const duration = 100; 
     const range = 5; 
@@ -44,17 +42,16 @@ export function explodeBomb(b) {
     let centerNapalm = b.napalm;
     let centerIsOil = isOilSource;
     
-    // ÄNDERUNG: Standard auf 60 Frames (1 Sekunde)
-    let centerDuration = 60;
+    let centerDuration = 60; // Standard Explosion
 
-    // Spezialwerte bleiben erhalten
-    if (isOilSource) centerDuration = 1200; // 20 Sekunden
-    else if (b.napalm) centerDuration = 720; // 12 Sekunden
+    // UPDATE: 12 Sekunden (720 Frames) für Öl
+    if (isOilSource) centerDuration = 720; 
+    else if (b.napalm) centerDuration = 720; 
 
     if (b.underlyingTile === TYPES.WATER) {
         centerNapalm = false;
         centerIsOil = false;
-        centerDuration = 60; // Auch auf Wasser nur kurze Explosion
+        centerDuration = 60; 
     }
 
     destroyItem(b.gx, b.gy); 
@@ -72,11 +69,10 @@ export function explodeBomb(b) {
             let tileNapalm = b.napalm;
             let tileIsOilFire = tileIsOil; 
             
-            // ÄNDERUNG: Standard auf 60 Frames
             let tileDuration = 60; 
             
-            // Spezialwerte bleiben erhalten
-            if (tileIsOil) tileDuration = 1200; 
+            // UPDATE: 12 Sekunden (720 Frames) für Öl
+            if (tileIsOil) tileDuration = 720; 
             else if (tileNapalm) tileDuration = 720; 
 
             if (tile === TYPES.WATER) {
