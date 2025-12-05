@@ -145,18 +145,50 @@ export function draw(ctx, canvas) {
         });
     }
 
-    // --- OIL PADS (Hell only) ---
+   // --- OIL PADS (Hell only) ---
     if (state.currentLevel.id === 'hell') {
         OIL_PADS.forEach(oil => {
             const px = oil.x * TILE_SIZE; const py = oil.y * TILE_SIZE;
-            // Dunkler, glänzender "Ölfleck"
-            ctx.fillStyle = '#0a0505'; // Sehr dunkles Schwarz
+            const cx = px + TILE_SIZE / 2;
+            const cy = py + TILE_SIZE / 2;
+
+            // 1. Kachel-Hintergrund: Dreckiges Hellgrau
+            ctx.fillStyle = '#7a6a6a';
             ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
-            // Schimmer
-            ctx.fillStyle = 'rgba(50, 30, 30, 0.3)';
-            ctx.beginPath(); ctx.arc(px + 15, py + 15, 10, 0, Math.PI*2); ctx.fill();
-            ctx.fillStyle = 'rgba(40, 20, 20, 0.2)';
-            ctx.beginPath(); ctx.arc(px + 35, py + 30, 8, 0, Math.PI*2); ctx.fill();
+
+            // 2. Die unregelmäßige Pfütze
+            // Wir zeichnen mehrere sich überlappende schwarze Formen, 
+            // damit es wie ein natürlicher "Blob" aussieht.
+            ctx.fillStyle = '#050202'; // Tiefschwarz
+
+            // Hauptkörper (leicht gedrehte Ellipse)
+            ctx.beginPath();
+            ctx.ellipse(cx, cy, TILE_SIZE*0.38, TILE_SIZE*0.32, Math.PI*0.1, 0, Math.PI*2);
+            ctx.fill();
+
+            // Variation: Wir nutzen die Koordinaten, um die Form bei jedem Feld leicht anders zu machen
+            const varyX = (oil.x % 5 - 2) * 3; 
+            const varyY = (oil.y % 5 - 2) * 3;
+
+            // Zwei zusätzliche "Ausbuchtungen" am Rand
+            ctx.beginPath();
+            ctx.arc(cx - 12 + varyX, cy + 8 + varyY, 10, 0, Math.PI*2);
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.arc(cx + 10 - varyY, cy - 10 + varyX, 9, 0, Math.PI*2);
+            ctx.fill();
+
+            // 3. Schimmer (Nasseffek)
+            ctx.fillStyle = 'rgba(200, 200, 200, 0.15)'; // Heller, öliger Glanz
+            ctx.beginPath();
+            // Hauptreflexion oben links
+            ctx.ellipse(cx - 8, cy - 12, 10, 5, Math.PI / 4, 0, Math.PI * 2);
+            ctx.fill();
+            // Kleinerer Glanzpunkt unten rechts
+            ctx.beginPath();
+            ctx.ellipse(cx + 12, cy + 12, 4, 2, Math.PI / 4, 0, Math.PI * 2);
+            ctx.fill();
         });
     }
 
