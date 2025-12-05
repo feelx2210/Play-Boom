@@ -39,10 +39,10 @@ window.startGame = function() {
     state.hellFirePhase = 'IDLE'; 
     state.hellFireActive = false; 
 
-    // --- ICE TIMER RESET ---
+    // --- ICE TIMER SETUP ---
     state.iceTimer = 0;
-    // Erster Countdown startet sofort, wird aber erst ab Sekunde 30 runtergezählt
-    state.iceSpawnCountdown = 1800; 
+    // Erster Countdown startet ab 20 Sekunden (1200 Frames)
+    state.iceSpawnCountdown = 1200; 
     // -----------------------
 
     for (let y = 0; y < GRID_H; y++) {
@@ -142,20 +142,24 @@ function update() {
         }
     }
 
-    // --- ICE SPAWN UPDATE ---
+    // --- ICE SPAWN UPDATE (Harder!) ---
     if (state.currentLevel.id === 'ice') {
         state.iceTimer++;
-        // Erst ab 30 Sekunden (1800 Frames) aktiv werden
-        if (state.iceTimer > 1800) {
+        
+        // Schon ab 20 Sekunden (1200 Frames) aktiv werden
+        if (state.iceTimer > 1200) {
             state.iceSpawnCountdown--;
             if (state.iceSpawnCountdown <= 0) {
+                // ZWEI Blöcke gleichzeitig spawnen!
                 spawnRandomIce();
-                // Alle 30 Sekunden (1800 Frames) ein neuer Block
-                state.iceSpawnCountdown = 1800;
+                spawnRandomIce();
+                
+                // Alle 20 Sekunden (1200 Frames) wiederholen
+                state.iceSpawnCountdown = 1200;
             }
         }
     }
-    // ------------------------
+    // ----------------------------------
 
     // Bombs Update
     for (let i = state.bombs.length - 1; i >= 0; i--) {
@@ -209,7 +213,6 @@ function update() {
         // --- FREEZING ABGESCHLOSSEN? ---
         if (p.type === 'freezing' && p.life <= 0) {
             state.grid[p.gy][p.gx] = TYPES.WALL_SOFT;
-            // Kein Text mehr
         }
         // -------------------------------
 
