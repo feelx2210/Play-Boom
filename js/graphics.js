@@ -1,6 +1,6 @@
 import { TILE_SIZE, GRID_W, GRID_H, TYPES, ITEMS, BOOST_PADS, OIL_PADS, HELL_CENTER } from './constants.js';
 import { state } from './state.js';
-import { drawAllParticles } from './render_particles.js'; // NEUER IMPORT
+import { drawAllParticles } from './render_particles.js';
 
 const spriteCache = {};
 
@@ -145,50 +145,37 @@ export function draw(ctx, canvas) {
         });
     }
 
-   // --- OIL PADS (Hell only) ---
+    // --- OIL PADS (Hell only) ---
     if (state.currentLevel.id === 'hell') {
         OIL_PADS.forEach(oil => {
             const px = oil.x * TILE_SIZE; const py = oil.y * TILE_SIZE;
             const cx = px + TILE_SIZE / 2;
             const cy = py + TILE_SIZE / 2;
 
-            // 1. Kachel-Hintergrund: Dreckiges Hellgrau
+            // 1. Kachel-Hintergrund
             ctx.fillStyle = '#7a6a6a';
             ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
 
             // 2. Die unregelmäßige Pfütze
-            // Wir zeichnen mehrere sich überlappende schwarze Formen, 
-            // damit es wie ein natürlicher "Blob" aussieht.
             ctx.fillStyle = '#050202'; // Tiefschwarz
 
-            // Hauptkörper (leicht gedrehte Ellipse)
+            // Hauptkörper
             ctx.beginPath();
             ctx.ellipse(cx, cy, TILE_SIZE*0.38, TILE_SIZE*0.32, Math.PI*0.1, 0, Math.PI*2);
             ctx.fill();
 
-            // Variation: Wir nutzen die Koordinaten, um die Form bei jedem Feld leicht anders zu machen
+            // Variation
             const varyX = (oil.x % 5 - 2) * 3; 
             const varyY = (oil.y % 5 - 2) * 3;
 
-            // Zwei zusätzliche "Ausbuchtungen" am Rand
-            ctx.beginPath();
-            ctx.arc(cx - 12 + varyX, cy + 8 + varyY, 10, 0, Math.PI*2);
-            ctx.fill();
+            // Ausbuchtungen
+            ctx.beginPath(); ctx.arc(cx - 12 + varyX, cy + 8 + varyY, 10, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(cx + 10 - varyY, cy - 10 + varyX, 9, 0, Math.PI*2); ctx.fill();
 
-            ctx.beginPath();
-            ctx.arc(cx + 10 - varyY, cy - 10 + varyX, 9, 0, Math.PI*2);
-            ctx.fill();
-
-            // 3. Schimmer (Nasseffek)
-            ctx.fillStyle = 'rgba(200, 200, 200, 0.15)'; // Heller, öliger Glanz
-            ctx.beginPath();
-            // Hauptreflexion oben links
-            ctx.ellipse(cx - 8, cy - 12, 10, 5, Math.PI / 4, 0, Math.PI * 2);
-            ctx.fill();
-            // Kleinerer Glanzpunkt unten rechts
-            ctx.beginPath();
-            ctx.ellipse(cx + 12, cy + 12, 4, 2, Math.PI / 4, 0, Math.PI * 2);
-            ctx.fill();
+            // 3. Schimmer
+            ctx.fillStyle = 'rgba(200, 200, 200, 0.15)';
+            ctx.beginPath(); ctx.ellipse(cx - 8, cy - 12, 10, 5, Math.PI / 4, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(cx + 12, cy + 12, 4, 2, Math.PI / 4, 0, Math.PI * 2); ctx.fill();
         });
     }
 
@@ -303,7 +290,7 @@ export function draw(ctx, canvas) {
     state.bombs.forEach(b => {
         const px = b.px; const py = b.py; const scale = 1 + Math.sin(Date.now() / 100) * 0.1;
         let baseColor = '#444444'; if (state.currentLevel.id === 'jungle') baseColor = '#000000';
-        ctx.fillStyle = b.napalm ? '#dd0000' : baseColor; if (b.isBlue) ctx.fillStyle = '#6666ff';
+        ctx.fillStyle = b.napalm ? '#dd0000' : baseColor; if (b.isBlue) ctx.fillStyle = '#0000cc';
         ctx.beginPath(); ctx.arc(px + TILE_SIZE/2, py + TILE_SIZE/2, 16 * scale, 0, Math.PI * 2); ctx.fill();
         ctx.strokeStyle = '#aaaaaa'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(px + TILE_SIZE/2 + 8, py + TILE_SIZE/2 - 8); ctx.lineTo(px + TILE_SIZE/2 + 12, py + TILE_SIZE/2 - 14); ctx.stroke();
         ctx.fillStyle = 'orange'; ctx.beginPath(); ctx.arc(px + TILE_SIZE/2 + 12, py + TILE_SIZE/2 - 14, 3, 0, Math.PI*2); ctx.fill();
@@ -312,7 +299,6 @@ export function draw(ctx, canvas) {
         for(let j=0; j<3; j++) { const angle = Math.random() * Math.PI * 2; const dist = 2 + Math.random() * 6; ctx.fillStyle = '#ffffff'; ctx.globalAlpha = 0.8; ctx.fillRect(tipX + Math.cos(angle)*dist, tipY + Math.sin(angle)*dist, 2, 2); ctx.globalAlpha = 1.0; }
     });
 
-    // --- HIER: PARTICLE RENDERING AN OUTSOURCED FUNCTION ---
     drawAllParticles(ctx);
 
     state.players.slice().sort((a,b) => a.y - b.y).forEach(p => p.draw());
