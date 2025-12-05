@@ -43,15 +43,18 @@ export function explodeBomb(b) {
     
     let centerNapalm = b.napalm;
     let centerIsOil = isOilSource;
-    let centerDuration = 100;
+    
+    // ÄNDERUNG: Standard auf 60 Frames (1 Sekunde)
+    let centerDuration = 60;
 
-    if (isOilSource) centerDuration = 820; 
-    else if (b.napalm) centerDuration = 820; 
+    // Spezialwerte bleiben erhalten
+    if (isOilSource) centerDuration = 1200; // 20 Sekunden
+    else if (b.napalm) centerDuration = 720; // 12 Sekunden
 
     if (b.underlyingTile === TYPES.WATER) {
         centerNapalm = false;
         centerIsOil = false;
-        centerDuration = 100;
+        centerDuration = 60; // Auch auf Wasser nur kurze Explosion
     }
 
     destroyItem(b.gx, b.gy); 
@@ -69,14 +72,17 @@ export function explodeBomb(b) {
             let tileNapalm = b.napalm;
             let tileIsOilFire = tileIsOil; 
             
-            let tileDuration = 100; 
-            if (tileIsOil) tileDuration = 820; 
-            else if (tileNapalm) tileDuration = 820; 
+            // ÄNDERUNG: Standard auf 60 Frames
+            let tileDuration = 60; 
+            
+            // Spezialwerte bleiben erhalten
+            if (tileIsOil) tileDuration = 1200; 
+            else if (tileNapalm) tileDuration = 720; 
 
             if (tile === TYPES.WATER) {
                 tileNapalm = false;
                 tileIsOilFire = false;
-                tileDuration = 100;
+                tileDuration = 60;
             }
 
             let type = (i === range) ? 'end' : 'middle';
