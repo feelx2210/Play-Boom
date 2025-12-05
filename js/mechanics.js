@@ -2,6 +2,8 @@ import { state } from './state.js';
 import { TYPES, ITEMS, BOOST_PADS, OIL_PADS, HELL_CENTER, TILE_SIZE, GRID_W, GRID_H } from './constants.js';
 import { createFloatingText } from './utils.js';
 
+// ... (Bestehende Imports und Funktionen bleiben erhalten) ...
+
 export function triggerHellFire() {
     const duration = 100; 
     const range = 5; 
@@ -41,10 +43,8 @@ export function explodeBomb(b) {
     
     let centerNapalm = b.napalm;
     let centerIsOil = isOilSource;
-    
-    let centerDuration = 60; // Standard Explosion
+    let centerDuration = 60;
 
-    // UPDATE: 12 Sekunden (720 Frames) für Öl
     if (isOilSource) centerDuration = 720; 
     else if (b.napalm) centerDuration = 720; 
 
@@ -70,8 +70,6 @@ export function explodeBomb(b) {
             let tileIsOilFire = tileIsOil; 
             
             let tileDuration = 60; 
-            
-            // UPDATE: 12 Sekunden (720 Frames) für Öl
             if (tileIsOil) tileDuration = 720; 
             else if (tileNapalm) tileDuration = 720; 
 
@@ -139,5 +137,42 @@ export function killPlayer(p) {
     createFloatingText(p.x, p.y, "ELIMINATED", "#ff0000"); 
     for(let i=0; i<15; i++) { 
         state.particles.push({ x: p.x + 24, y: p.y + 24, vx: (Math.random()-0.5)*6, vy: (Math.random()-0.5)*6, life: 60, color: '#666666', size: 4 }); 
+    }
+}
+
+// --- NEU: EIS-SPAWN LOGIK ---
+export function spawnRandomIce() {
+    // Versuche 50x eine freie Stelle zu finden
+    for(let i=0; i<50; i++) {
+        // Zufällige Koordinaten (Rand ausschließen)
+        let x = Math.floor(Math.random() * (GRID_W - 2)) + 1;
+        let y = Math.floor(Math.random() * (GRID_H - 2)) + 1;
+
+        // 1. Muss leer sein
+        if (state.grid[y][x] !== TYPES.EMPTY) continue;
+        
+        // 2. Darf kein Spieler drauf stehen
+        let blockedByPlayer = state.players.some(p => Math.round(p.x/TILE_SIZE) === x && Math.round(p.y/TILE_SIZE) === y);
+        if (blockedByPlayer) continue;
+
+        // 3. Darf keine Bombe dort sein
+        let blockedByBomb = state.bombs.some(b => b.gx === x && b.gy === y);
+        if (blockedByBomb) continue;
+
+        // 4. Darf kein Feuer dort sein
+        let blockedByFire = state.particles.some(p => p.isFire && p.gx === x && p.gy === y);
+        if (blockedByFire) continue;
+        
+        // Valid! Starte Animation
+        // Wir erzeugen einen "Freezing"-Partikel. Wenn dieser stirbt (nach der Animation),
+        // wird die Wand gesetzt (Logik in game.js update loop).
+        state.particles.push({
+            type: 'freezing',
+            gx: x, 
+            gy: y,
+            life: 60, // 1 Sekunde Animation
+            maxLife: 60
+        });
+        return; // Erfolgreich gestartet
     }
 }
