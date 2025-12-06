@@ -210,9 +210,27 @@ function update() {
             if (hitBombIndex !== -1) { const chainedBomb = state.bombs[hitBombIndex]; if (chainedBomb.timer > 1) { if(chainedBomb.isRolling) { chainedBomb.isRolling = false; chainedBomb.px = chainedBomb.gx * TILE_SIZE; chainedBomb.py = chainedBomb.gy * TILE_SIZE; chainedBomb.underlyingTile = state.grid[chainedBomb.gy][chainedBomb.gx]; } chainedBomb.timer = 0; } }
         }
         
-        // --- FREEZING ABGESCHLOSSEN? ---
+     // --- FREEZING ABGESCHLOSSEN? ---
         if (p.type === 'freezing' && p.life <= 0) {
             state.grid[p.gy][p.gx] = TYPES.WALL_SOFT;
+
+            // NEU: Item-Spawn Wahrscheinlichkeit (ca. 30%)
+            // Simuliert die Verteilung, die auch beim Spielstart passiert
+            if (Math.random() < 0.3) {
+                // Ein Pool gewichtet nach Seltenheit
+                const itemPool = [
+                    ITEMS.BOMB_UP, ITEMS.BOMB_UP, ITEMS.BOMB_UP, // Häufig
+                    ITEMS.RANGE_UP, ITEMS.RANGE_UP, ITEMS.RANGE_UP, // Häufig
+                    ITEMS.SPEED_UP, ITEMS.SPEED_UP, // Mittel
+                    ITEMS.SKULL, // Mittel (Gefahr!)
+                    ITEMS.ROLLING, // Selten
+                    ITEMS.NAPALM   // Sehr Selten
+                ];
+                
+                // Zufälliges Item aus dem Pool wählen und platzieren
+                const randomItem = itemPool[Math.floor(Math.random() * itemPool.length)];
+                state.items[p.gy][p.gx] = randomItem;
+            }
         }
         // -------------------------------
 
