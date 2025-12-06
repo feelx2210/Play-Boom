@@ -290,7 +290,7 @@ export function draw(ctx, canvas) {
     state.bombs.forEach(b => {
         const px = b.px; const py = b.py; const scale = 1 + Math.sin(Date.now() / 100) * 0.1;
         let baseColor = '#444444'; if (state.currentLevel.id === 'jungle') baseColor = '#000000';
-        ctx.fillStyle = b.napalm ? '#dd0000' : baseColor; if (b.isBlue) ctx.fillStyle = '#0000cc';
+        ctx.fillStyle = b.napalm ? '#dd0000' : baseColor; if (b.isBlue) ctx.fillStyle = '#000080';
         ctx.beginPath(); ctx.arc(px + TILE_SIZE/2, py + TILE_SIZE/2, 16 * scale, 0, Math.PI * 2); ctx.fill();
         ctx.strokeStyle = '#aaaaaa'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(px + TILE_SIZE/2 + 8, py + TILE_SIZE/2 - 8); ctx.lineTo(px + TILE_SIZE/2 + 12, py + TILE_SIZE/2 - 14); ctx.stroke();
         ctx.fillStyle = 'orange'; ctx.beginPath(); ctx.arc(px + TILE_SIZE/2 + 12, py + TILE_SIZE/2 - 14, 3, 0, Math.PI*2); ctx.fill();
