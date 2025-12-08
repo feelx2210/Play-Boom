@@ -14,7 +14,6 @@ canvas.height = GRID_H * TILE_SIZE;
 
 let gameLoopId;
 
-// --- RESPONSIVE SCALING LOGIC ---
 function resizeGame() {
     const container = document.getElementById('game-container');
     if (!container) return;
@@ -23,18 +22,12 @@ function resizeGame() {
     const windowHeight = window.innerHeight;
     const gameSize = 720;
     
-    // Wir wollen 20px Platz insgesamt lassen (10px links, 10px rechts)
-    // Das passt exakt zu unserem "margin-top: 10px" im CSS
     const scaleX = (windowWidth - 20) / gameSize;
     const scaleY = (windowHeight - 20) / gameSize;
     
+    // Im Portrait Modus ggf. etwas kleiner machen, falls es zu groß wirkt
     const scale = Math.min(scaleX, scaleY);
     container.style.transform = `scale(${scale})`;
-    
-    // Wichtig: Im Portrait-Modus müssen wir dem Container sagen, 
-    // dass er von OBEN skalieren soll, sonst zentriert er sich vertikal
-    // und rutscht in die Controls. Das machen wir via CSS Media Query (transform-origin: top center),
-    // aber wir loggen es hier zur Sicherheit.
 }
 
 window.addEventListener('resize', resizeGame);
@@ -46,9 +39,11 @@ window.startGame = function() {
     document.getElementById('game-over').classList.add('hidden');
     document.getElementById('ui-layer').classList.remove('hidden');
     document.getElementById('pause-btn').classList.remove('hidden'); 
+    
+    // WICHTIG: Jetzt erst Controls einblenden!
     document.getElementById('mobile-controls').classList.remove('hidden');
 
-    resizeGame(); // Sicherstellen dass es beim Start passt
+    resizeGame(); 
 
     const userChar = CHARACTERS[state.selectedCharIndex];
     state.currentLevel = LEVELS[state.selectedLevelKey];
