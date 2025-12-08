@@ -21,6 +21,7 @@ window.startGame = function() {
     document.getElementById('game-over').classList.add('hidden');
     document.getElementById('ui-layer').classList.remove('hidden');
     document.getElementById('pause-btn').classList.remove('hidden'); 
+    document.getElementById('mobile-controls').classList.remove('hidden');
 
     // Mobile Controls aktivieren, falls auf Touch-Device (durch CSS sichtbar)
     // Logik wird unten initialisiert
