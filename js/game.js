@@ -8,6 +8,8 @@ import { explodeBomb, triggerHellFire, killPlayer, spawnRandomIce } from './mech
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
+// ÄNDERUNG: Keine feste Zuweisung von canvas.width/height mehr hier, 
+// da CSS dies nun responsive regelt. Wir setzen die interne Auflösung passend.
 canvas.width = GRID_W * TILE_SIZE;
 canvas.height = GRID_H * TILE_SIZE;
 
@@ -19,6 +21,9 @@ window.startGame = function() {
     document.getElementById('game-over').classList.add('hidden');
     document.getElementById('ui-layer').classList.remove('hidden');
     document.getElementById('pause-btn').classList.remove('hidden'); 
+
+    // Mobile Controls aktivieren, falls auf Touch-Device (durch CSS sichtbar)
+    // Logik wird unten initialisiert
 
     const userChar = CHARACTERS[state.selectedCharIndex];
     state.currentLevel = LEVELS[state.selectedLevelKey];
@@ -41,9 +46,7 @@ window.startGame = function() {
 
     // --- ICE TIMER SETUP ---
     state.iceTimer = 0;
-    // Erster Countdown startet ab 20 Sekunden (1200 Frames)
     state.iceSpawnCountdown = 1200; 
-    // -----------------------
 
     for (let y = 0; y < GRID_H; y++) {
         let row = []; let itemRow = [];
@@ -60,7 +63,6 @@ window.startGame = function() {
             else if ((state.currentLevel.id === 'hell' || state.currentLevel.id === 'ice') && BOOST_PADS.some(p => p.x === x && p.y === y)) {
                 row.push(TYPES.EMPTY);
             }
-            // Richtungsfelder müssen leer sein
             else if (DIRECTION_PADS.some(p => p.x === x && p.y === y)) {
                 row.push(TYPES.EMPTY);
             }
@@ -146,7 +148,7 @@ function update() {
         }
     }
 
-    // --- ICE SPAWN UPDATE (Harder!) ---
+    // --- ICE SPAWN UPDATE ---
     if (state.currentLevel.id === 'ice') {
         state.iceTimer++;
         if (state.iceTimer > 1200) {
@@ -158,7 +160,6 @@ function update() {
             }
         }
     }
-    // ----------------------------------
 
     // Bombs Update
     for (let i = state.bombs.length - 1; i >= 0; i--) {
@@ -166,12 +167,10 @@ function update() {
         if (b.isRolling) {
             // Richtungsfelder Check
             const dirPad = DIRECTION_PADS.find(p => p.x === b.gx && p.y === b.gy);
-            // Wenn Pad gefunden und Bombe rollt noch nicht in diese Richtung
             if (dirPad && (b.rollDir.x !== dirPad.dir.x || b.rollDir.y !== dirPad.dir.y)) {
                 const centerX = b.gx * TILE_SIZE;
                 const centerY = b.gy * TILE_SIZE;
                 const distSq = (b.px - centerX) ** 2 + (b.py - centerY) ** 2;
-                // Wenn nah genug am Zentrum (< 5px Abweichung ca.), dann einrasten und drehen
                 if (distSq < 25) {
                     b.px = centerX;
                     b.py = centerY;
@@ -227,22 +226,11 @@ function update() {
         // --- FREEZING ABGESCHLOSSEN? ---
         if (p.type === 'freezing' && p.life <= 0) {
             state.grid[p.gy][p.gx] = TYPES.WALL_SOFT;
-
-            // NEU: Item-Spawn Wahrscheinlichkeit (ca. 30%)
             if (Math.random() < 0.3) {
-                const itemPool = [
-                    ITEMS.BOMB_UP, ITEMS.BOMB_UP, ITEMS.BOMB_UP, 
-                    ITEMS.RANGE_UP, ITEMS.RANGE_UP, ITEMS.RANGE_UP, 
-                    ITEMS.SPEED_UP, ITEMS.SPEED_UP, 
-                    ITEMS.SKULL, 
-                    ITEMS.ROLLING, 
-                    ITEMS.NAPALM   
-                ];
-                const randomItem = itemPool[Math.floor(Math.random() * itemPool.length)];
-                state.items[p.gy][p.gx] = randomItem;
+                const itemPool = [ITEMS.BOMB_UP, ITEMS.BOMB_UP, ITEMS.BOMB_UP, ITEMS.RANGE_UP, ITEMS.RANGE_UP, ITEMS.RANGE_UP, ITEMS.SPEED_UP, ITEMS.SPEED_UP, ITEMS.SKULL, ITEMS.ROLLING, ITEMS.NAPALM];
+                state.items[p.gy][p.gx] = itemPool[Math.floor(Math.random() * itemPool.length)];
             }
         }
-        // -------------------------------
 
         if (p.life <= 0) state.particles.splice(i, 1);
     }
@@ -250,33 +238,21 @@ function update() {
     state.players.forEach(p => { 
         if (p.inFire) { 
             p.fireTimer++; 
-            if (p.fireTimer >= 30) { 
-                killPlayer(p); 
-                p.fireTimer = 0; 
-            } 
+            if (p.fireTimer >= 30) { killPlayer(p); p.fireTimer = 0; } 
         } else p.fireTimer = 0; 
     });
     
     let aliveCount = 0; let livingPlayers = [];
     state.players.forEach(p => { p.update(); if (p.alive) { aliveCount++; livingPlayers.push(p); } });
 
-    // NEU: Kollisionslogik für Ansteckung
+    // Ansteckungs-Check
     for (let i = 0; i < livingPlayers.length; i++) {
         for (let j = i + 1; j < livingPlayers.length; j++) {
             const p1 = livingPlayers[i]; const p2 = livingPlayers[j];
             const dist = Math.hypot(p1.x - p2.x, p1.y - p2.y);
-            
             if (dist < TILE_SIZE * 0.8) {
-                // P1 steckt P2 an (wenn P1 Flüche hat und P2 keine)
-                if (p1.activeCurses.length > 0 && p2.activeCurses.length === 0) {
-                    p1.activeCurses.forEach(c => p2.addCurse(c.type));
-                    createFloatingText(p2.x, p2.y, "INFECTED!", "#ff00ff");
-                }
-                // P2 steckt P1 an (wenn P2 Flüche hat und P1 keine)
-                else if (p2.activeCurses.length > 0 && p1.activeCurses.length === 0) {
-                    p2.activeCurses.forEach(c => p1.addCurse(c.type));
-                    createFloatingText(p1.x, p1.y, "INFECTED!", "#ff00ff");
-                }
+                if (p1.activeCurses.length > 0 && p2.activeCurses.length === 0) { p1.activeCurses.forEach(c => p2.addCurse(c.type)); createFloatingText(p2.x, p2.y, "INFECTED!", "#ff00ff"); }
+                else if (p2.activeCurses.length > 0 && p1.activeCurses.length === 0) { p2.activeCurses.forEach(c => p1.addCurse(c.type)); createFloatingText(p1.x, p1.y, "INFECTED!", "#ff00ff"); }
             }
         }
     }
@@ -301,5 +277,95 @@ function gameLoop() {
     }
     gameLoopId = requestAnimationFrame(gameLoop);
 }
+
+// --- MOBILE CONTROLS SETUP ---
+(function setupMobileControls() {
+    const joystickArea = document.getElementById('joystick-area');
+    const stick = document.getElementById('joystick-stick');
+    const btnBomb = document.getElementById('btn-bomb');
+    const btnChange = document.getElementById('btn-change');
+    let startX, startY;
+    let joystickActive = false;
+
+    // Joystick Logic
+    joystickArea.addEventListener('touchstart', e => {
+        e.preventDefault();
+        const touch = e.changedTouches[0];
+        startX = touch.clientX;
+        startY = touch.clientY;
+        joystickActive = true;
+    }, {passive: false});
+
+    joystickArea.addEventListener('touchmove', e => {
+        e.preventDefault();
+        if (!joystickActive) return;
+        const touch = e.changedTouches[0];
+        
+        let dx = touch.clientX - startX;
+        let dy = touch.clientY - startY;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        const maxDist = 35; // Radius begrenzen
+
+        // Stick bewegen (visuell)
+        if (dist > maxDist) {
+            const ratio = maxDist / dist;
+            dx *= ratio;
+            dy *= ratio;
+        }
+        stick.style.transform = `translate(${dx}px, ${dy}px)`;
+
+        // Tasten simulieren
+        // Reset old keys
+        state.keys[keyBindings.UP] = false;
+        state.keys[keyBindings.DOWN] = false;
+        state.keys[keyBindings.LEFT] = false;
+        state.keys[keyBindings.RIGHT] = false;
+
+        // Schwellenwert für Bewegung (deadzone)
+        if (dist > 10) {
+            const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+            
+            if (angle > -45 && angle <= 45) state.keys[keyBindings.RIGHT] = true;
+            else if (angle > 45 && angle <= 135) state.keys[keyBindings.DOWN] = true;
+            else if (angle > 135 || angle <= -135) state.keys[keyBindings.LEFT] = true;
+            else if (angle > -135 && angle <= -45) state.keys[keyBindings.UP] = true;
+        }
+    }, {passive: false});
+
+    const resetJoystick = () => {
+        joystickActive = false;
+        stick.style.transform = `translate(0px, 0px)`;
+        state.keys[keyBindings.UP] = false;
+        state.keys[keyBindings.DOWN] = false;
+        state.keys[keyBindings.LEFT] = false;
+        state.keys[keyBindings.RIGHT] = false;
+    };
+
+    joystickArea.addEventListener('touchend', resetJoystick);
+    joystickArea.addEventListener('touchcancel', resetJoystick);
+
+    // Buttons Logic
+    btnBomb.addEventListener('touchstart', e => {
+        e.preventDefault();
+        // Manuelles Triggern der Bombe für P1
+        if (state.players[0] && state.players[0].alive) state.players[0].plantBomb();
+        btnBomb.style.transform = "scale(0.9)";
+    });
+    btnBomb.addEventListener('touchend', e => {
+        e.preventDefault();
+        btnBomb.style.transform = "scale(1)";
+    });
+
+    btnChange.addEventListener('touchstart', e => {
+        e.preventDefault();
+        if (state.players[0] && state.players[0].alive) state.players[0].cycleBombType();
+        btnChange.style.transform = "scale(0.9)";
+    });
+    btnChange.addEventListener('touchend', e => {
+        e.preventDefault();
+        btnChange.style.transform = "scale(1)";
+    });
+
+})();
 
 showMenu();
