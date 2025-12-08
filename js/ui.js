@@ -19,7 +19,7 @@ export function updateHud(player) {
     if (elFire) elFire.innerText = `🔥 ${player.bombRange}`;
 }
 
-// Helper: Zyklisches Navigieren
+// Helper: Zyklisches Navigieren Desktop
 function changeSelection(type, dir) {
     if (type === 'char') {
         const len = CHARACTERS.length;
