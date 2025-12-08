@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>BOOM: Final Version</title>
+    <title>BOOM: Mobile Edition</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -12,7 +12,6 @@
         <canvas id="gameCanvas"></canvas>
         
         <div id="pause-btn" class="hidden" onclick="togglePause()">X</div>
-
         <div id="ui-layer" class="hidden">
             <div class="hud-item">
                 <span id="p1-name">P1</span> 
@@ -21,40 +20,48 @@
                 <span id="hud-fire" style="color: #ffaa00;">🔥 1</span>
             </div>
         </div>
+    </div>
 
-        <div id="main-menu" class="screen">
-            <h1>BOOM</h1>
-            
+    <div id="main-menu" class="screen">
+        <h1 class="game-title">BOOM</h1>
+        
+        <div class="menu-section">
             <h2>SELECT PLAYER</h2>
-            <div class="selection-grid" id="char-select"></div>
+            <div class="carousel-container" id="char-select"></div>
+            <div class="selected-name" id="char-name-display">RAMBO</div>
+        </div>
 
+        <div class="menu-section">
             <h2>SELECT LEVEL</h2>
-            <div class="selection-grid" id="level-select"></div>
+            <div class="carousel-container" id="level-select"></div>
+            <div class="selected-name" id="level-name-display">HELL</div>
+        </div>
 
+        <div class="menu-footer">
             <button id="start-game-btn" class="main-btn" onclick="startGame()">START GAME</button>
             <button class="btn-secondary" onclick="showControls()">CONTROLS</button>
         </div>
-
-        <div id="controls-menu" class="screen hidden">
-            <h1>CONTROLS</h1>
-            <div class="controls-list" id="controls-list"></div>
-            <button class="btn-secondary" onclick="showMenu()">BACK</button>
-        </div>
-
-        <div id="pause-menu" class="screen hidden">
-            <h1>GAME PAUSED</h1>
-            <button class="main-btn" onclick="togglePause()">RESUME</button>
-            <button class="btn-secondary" onclick="quitGame()">QUIT GAME</button>
-        </div>
-
-        <div id="game-over" class="screen hidden">
-            <h1 id="go-title">GAME OVER</h1>
-            <p id="go-message" style="margin-bottom: 20px; font-size: 18px;">Lucifer Wins!</p>
-            <button class="main-btn" onclick="showMenu()">MAIN MENU</button>
-        </div>
     </div>
 
-  <div id="mobile-controls" class="hidden">
+    <div id="controls-menu" class="screen hidden">
+        <h1>CONTROLS</h1>
+        <div class="controls-list" id="controls-list"></div>
+        <button class="btn-secondary" onclick="showMenu()">BACK</button>
+    </div>
+
+    <div id="pause-menu" class="screen hidden">
+        <h1>GAME PAUSED</h1>
+        <button class="main-btn" onclick="togglePause()">RESUME</button>
+        <button class="btn-secondary" onclick="quitGame()">QUIT GAME</button>
+    </div>
+
+    <div id="game-over" class="screen hidden">
+        <h1 id="go-title">GAME OVER</h1>
+        <p id="go-message" style="margin-bottom: 20px; font-size: 18px;">Winner!</p>
+        <button class="main-btn" onclick="showMenu()">MAIN MENU</button>
+    </div>
+
+    <div id="mobile-controls" class="hidden">
         <div id="joystick-area">
             <div id="joystick-base">
                 <div id="joystick-stick"></div>
@@ -70,4 +77,3 @@
     <script type="module" src="js/game.js"></script>
 </body>
 </html>
-    
