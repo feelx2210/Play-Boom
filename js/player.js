@@ -5,7 +5,7 @@ import { drawCharacterSprite } from './graphics.js';
 import { updateBotLogic } from './ai.js';
 import { updateHud } from './ui.js';
 
-// Helper für Canvas Access
+// Helper für Canvas Access required
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
