@@ -109,6 +109,10 @@ export function showMenu() {
     document.getElementById('pause-menu').classList.add('hidden'); 
     document.getElementById('controls-menu').classList.add('hidden');
     
+    // ÄNDERUNG: Mobile Controls im Menü ausblenden
+    const mobControls = document.getElementById('mobile-controls');
+    if (mobControls) mobControls.classList.add('hidden');
+    
     state.menuState = 0;
     initMenu();
 }
