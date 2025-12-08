@@ -2,7 +2,7 @@ import { TILE_SIZE } from './constants.js';
 import { state } from './state.js';
 import { drawFlame, drawBeam } from './effects.js';
 
-// ... (drawOilFire Funktion bleibt unverändert - bitte den vorherigen Code beibehalten)
+// ... (drawOilFire Funktion bleibt unverändert)
 function drawOilFire(ctx, x, y) {
     const t = Date.now();
     ctx.save();
@@ -73,30 +73,47 @@ function drawFreezing(ctx, x, y, life, maxLife) {
     ctx.restore();
 }
 
-// NEU: Zeichnet die Napalm-Flamme (Icon-Stil)
+// ÄNDERUNG: Neue, pixelige Napalm-Flamme
 function drawNapalmFlame(ctx, x, y) {
     const t = Date.now();
     ctx.save();
-    ctx.translate(x, y);
+    // Zentrieren horizontal, vertikal an den Boden der Kachel setzen
+    ctx.translate(x + TILE_SIZE/2, y + TILE_SIZE - 8);
 
-    // Animation: Leichtes Pulsieren und Schweben/Wackeln
-    const scale = 1 + Math.sin(t / 200) * 0.15; 
-    const wobble = Math.sin(t / 150) * 0.1; // Leichte Rotation
+    const pixelSize = 4; // Größe eines "Retro-Pixels"
 
-    ctx.scale(scale, scale);
-    ctx.rotate(wobble);
+    // Definition der Flammen-Schichten von unten nach oben (Breite in unseren "Pixeln")
+    // Eine Pyramidenform: unten breit (6), oben spitz (1)
+    const layers = [6, 5, 4, 3, 2, 1];
 
-    // Zeichne das Feuer-Emoji (wie im Item)
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.font = '32px sans-serif'; 
-    
-    // Leuchter-Effekt hinter dem Emoji
-    ctx.shadowColor = '#ff4400';
-    ctx.shadowBlur = 10;
-    
-    ctx.fillStyle = '#ffaa00'; // Farbe des Fire-Up Items
-    ctx.fillText('🔥', 0, 4); // Leicht nach unten versetzt für optische Mitte
+    layers.forEach((width, i) => {
+        // Jede Schicht wackelt leicht unterschiedlich basierend auf Zeit und Höhe (i)
+        // Je höher (i), desto stärker das Wackeln.
+        const wave = Math.sin(t / 150 + i * 0.6) * (i * 0.7);
+        const currentY = -i * pixelSize; // Y-Position nach oben wandern lassen
+
+        // Äußerer Rand (Rot/Dunkelorange flackernd)
+        ctx.fillStyle = (Math.floor(t/100) + i) % 2 === 0 ? '#ff4400' : '#cc2200';
+        ctx.fillRect((-width/2 * pixelSize) + wave, currentY, width * pixelSize, pixelSize);
+
+        // Innerer Kern (Gelb/Hellorange flackernd) - nur wenn die Schicht breit genug ist
+        if (width > 2) {
+            const coreWidth = width - 2;
+            ctx.fillStyle = (Math.floor(t/100) + i) % 2 === 0 ? '#ffff00' : '#ffcc00';
+            // Kern zeichnen
+            ctx.fillRect((-coreWidth/2 * pixelSize) + wave, currentY, coreWidth * pixelSize, pixelSize);
+        }
+    });
+
+    // Gelegentlich ein einzelner "Funken"-Pixel oben drauf, der schnell aufsteigt
+    if (Math.random() < 0.3) {
+            ctx.fillStyle = '#ffff00';
+            // Funke wackelt mit der Spitze mit
+            const sparkWave = Math.sin(t / 150 + layers.length * 0.6) * (layers.length * 0.7);
+            // Funke ist 1-2 Pixel über der Spitze
+            const sparkHeight = (layers.length + (Math.floor(t/50)%2)) * pixelSize;
+            ctx.fillRect(sparkWave - pixelSize/2, -sparkHeight, pixelSize, pixelSize);
+    }
 
     ctx.restore();
 }
@@ -125,10 +142,10 @@ export function drawAllParticles(ctx) {
                 const pulse = Math.sin(Date.now() / 30) * 2;
                 const baseSize = 16; 
                 
-                // ÄNDERUNG: Napalm nutzt jetzt hier STANDARD-Farben (wie normale Bomben)
+                // Standard-Farben für die Explosion selbst
                 const isOil = p.isOilFire;
-                const inner = isOil ? '#ff5500' : '#ffff44'; // Standard Gelb für Napalm & Normal
-                const outer = isOil ? '#000000' : '#ff6600'; // Standard Orange für Napalm & Normal
+                const inner = isOil ? '#ff5500' : '#ffff44'; 
+                const outer = isOil ? '#000000' : '#ff6600'; 
                 
                 if (p.type === 'center') {
                     drawFlame(ctx, cx, cy, baseSize + pulse, inner, outer, 0.2);
@@ -150,9 +167,9 @@ export function drawAllParticles(ctx) {
             else if (p.isOilFire) {
                 drawOilFire(ctx, cx, cy);
             } 
-            // 4. Nachbrennen (Napalm) - NEU
+            // 4. Nachbrennen (Napalm) - Ruft die neue pixelige Funktion auf
             else if (p.isNapalm) {
-                drawNapalmFlame(ctx, cx, cy);
+                drawNapalmFlame(ctx, px, py); // Übergibt px, py (oben links der Kachel) für korrekte Positionierung
             }
             // 5. Ausglühen (Normale Explosion)
             else {
