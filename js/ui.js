@@ -19,6 +19,15 @@ export function updateHud(player) {
     if (elFire) elFire.innerText = `🔥 ${player.bombRange}`;
 }
 
+// Update Mobile Labels (Name unter Carousel)
+function updateMobileLabels() {
+    const charNameEl = document.getElementById('char-name-display');
+    if (charNameEl) charNameEl.innerText = CHARACTERS[state.selectedCharIndex].name;
+    
+    const levelNameEl = document.getElementById('level-name-display');
+    if (levelNameEl) levelNameEl.innerText = LEVELS[state.selectedLevelKey].name;
+}
+
 function changeSelection(type, dir) {
     if (type === 'char') {
         const len = CHARACTERS.length;
@@ -33,7 +42,7 @@ function changeSelection(type, dir) {
     initMenu();
 }
 
-// --- MENU CONTROLS ---
+// --- MENÜ STEUERUNG ---
 export function initMenu() {
     const charContainer = document.getElementById('char-select');
     const levelContainer = document.getElementById('level-select');
@@ -41,6 +50,9 @@ export function initMenu() {
     charContainer.innerHTML = '';
     levelContainer.innerHTML = '';
     
+    // Mobile Namen aktualisieren
+    updateMobileLabels();
+
     if (state.menuState === 0) {
         charContainer.classList.add('active-group'); charContainer.classList.remove('inactive-group');
         levelContainer.classList.add('inactive-group'); levelContainer.classList.remove('active-group');
@@ -71,8 +83,8 @@ export function initMenu() {
     CHARACTERS.forEach((char, index) => {
         const div = document.createElement('div');
         const isSelected = index === state.selectedCharIndex;
-        // WICHTIG: 'hidden-option' für CSS Portrait Mode Logic
-        div.className = `option-card ${isSelected ? 'selected' : 'hidden-option'}`;
+        
+        div.className = `option-card ${isSelected ? 'selected' : ''}`;
         div.onclick = () => { state.menuState = 0; state.selectedCharIndex = index; initMenu(); };
         
         const pCanvas = document.createElement('canvas'); 
@@ -95,7 +107,8 @@ export function initMenu() {
         const lvl = LEVELS[key];
         const div = document.createElement('div');
         const isSelected = key === state.selectedLevelKey;
-        div.className = `option-card ${isSelected ? 'selected' : 'hidden-option'}`;
+        
+        div.className = `option-card ${isSelected ? 'selected' : ''}`;
         div.onclick = () => { state.menuState = 1; state.selectedLevelKey = key; initMenu(); };
         
         const lCanvas = document.createElement('canvas'); 
@@ -138,7 +151,6 @@ export function showMenu() {
     document.getElementById('pause-menu').classList.add('hidden'); 
     document.getElementById('controls-menu').classList.add('hidden');
     
-    // FIX: Controls ausblenden
     const mobControls = document.getElementById('mobile-controls');
     if (mobControls) mobControls.classList.add('hidden');
     
