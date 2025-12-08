@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>BOOM: Final Version</title>
     <link rel="stylesheet" href="style.css">
 </head>
@@ -51,6 +51,18 @@
             <h1 id="go-title">GAME OVER</h1>
             <p id="go-message" style="margin-bottom: 20px; font-size: 18px;">Lucifer Wins!</p>
             <button class="main-btn" onclick="showMenu()">MAIN MENU</button>
+        </div>
+    </div>
+
+    <div id="mobile-controls">
+        <div id="joystick-area">
+            <div id="joystick-base">
+                <div id="joystick-stick"></div>
+            </div>
+        </div>
+        <div id="action-area">
+            <div id="btn-change" class="control-btn">🔄</div>
+            <div id="btn-bomb" class="control-btn">💣</div>
         </div>
     </div>
 
