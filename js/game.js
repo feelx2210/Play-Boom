@@ -51,6 +51,8 @@ window.startGame = function() {
     // Mobile Controls einblenden
     const mobControls = document.getElementById('mobile-controls');
     if (mobControls) mobControls.classList.remove('hidden');
+    // NEU: Spielcontainer wieder sichtbar machen!
+    document.getElementById('game-container').classList.remove('hidden');
 
     // Skalierung aktualisieren
     resizeGame();
