@@ -22,7 +22,7 @@ function resizeGame() {
     const windowHeight = window.innerHeight;
     const gameSize = 720;
     
-    // Scale Logic
+    // Scaling Logic
     const scaleX = (windowWidth - 20) / gameSize;
     const scaleY = (windowHeight - 20) / gameSize;
     
