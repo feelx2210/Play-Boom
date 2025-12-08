@@ -41,7 +41,7 @@ canvas {
     height: 100%;
 }
 
-/* --- UI / MENU GENERITIC --- */
+/* --- UI / MENU GENERIC--- */
 h1 { font-size: 40px; color: #ff0000; text-shadow: 4px 4px 0 #550000; margin-bottom: 30px; text-align: center; width: 100%; }
 h2 { font-size: 18px; color: #ffffff; margin-top: 15px; margin-bottom: 10px; text-align: center; width: 100%; }
 
