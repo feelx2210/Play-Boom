@@ -19,7 +19,7 @@ export function updateHud(player) {
     if (elFire) elFire.innerText = `🔥 ${player.bombRange}`;
 }
 
-// Helper: Zyklisches Navigieren fuer Endless 
+// Helper: Zyklisches Navigieren
 function changeSelection(type, dir) {
     if (type === 'char') {
         const len = CHARACTERS.length;
@@ -64,7 +64,6 @@ export function initMenu() {
         btn.innerText = dir > 0 ? '▶' : '◀';
         btn.onclick = (e) => { 
             e.stopPropagation(); // Verhindert Klick auf Container
-            // Setze Menu State korrekt, falls man klickt
             state.menuState = (type === 'char') ? 0 : 1;
             changeSelection(type, dir); 
         };
@@ -72,13 +71,12 @@ export function initMenu() {
     };
 
     // --- CHARACTER LISTE BAUEN ---
-    // Linker Pfeil
     charContainer.appendChild(createArrow(-1, 'char'));
 
     CHARACTERS.forEach((char, index) => {
         const div = document.createElement('div');
         const isSelected = index === state.selectedCharIndex;
-        // WICHTIG: Klasse 'hidden-option' für nicht ausgewählte Items (CSS steuert Sichtbarkeit)
+        // WICHTIG: Klasse 'hidden-option' für nicht ausgewählte Items
         div.className = `option-card ${isSelected ? 'selected' : 'hidden-option'}`;
         
         div.onclick = () => { state.menuState = 0; state.selectedCharIndex = index; initMenu(); };
@@ -97,12 +95,10 @@ export function initMenu() {
         charContainer.appendChild(div);
     });
 
-    // Rechter Pfeil
     charContainer.appendChild(createArrow(1, 'char'));
 
 
     // --- LEVEL LISTE BAUEN ---
-    // Linker Pfeil
     levelContainer.appendChild(createArrow(-1, 'level'));
 
     Object.keys(LEVELS).forEach((key) => {
@@ -127,7 +123,6 @@ export function initMenu() {
         levelContainer.appendChild(div);
     });
 
-    // Rechter Pfeil
     levelContainer.appendChild(createArrow(1, 'level'));
 }
 
@@ -159,7 +154,7 @@ export function showMenu() {
     document.getElementById('pause-menu').classList.add('hidden'); 
     document.getElementById('controls-menu').classList.add('hidden');
     
-    // Sicherstellen, dass Controls weg sind
+    // WICHTIG: Mobile Controls im Menü hart ausblenden
     const mobControls = document.getElementById('mobile-controls');
     if (mobControls) mobControls.classList.add('hidden');
     
