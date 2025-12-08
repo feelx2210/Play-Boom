@@ -7,12 +7,11 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center; /* Desktop Standard: Mitte */
+    justify-content: center; /* Desktop: Zentriert */
     
     width: 100vw;
     height: 100vh;
-    height: 100dvh; /* Mobile Fix second attemt */
-    
+    height: 100dvh;
     margin: 0;
     overflow: hidden;
     overscroll-behavior: none;
@@ -23,11 +22,9 @@ body {
     position: relative;
     width: 720px; 
     height: 720px;
-    
     box-shadow: 0 0 20px #ff0000;
     border: 4px solid #550000;
     background-color: #000;
-    
     transform-origin: center center;
     flex-shrink: 0; 
     transition: transform 0.2s; 
@@ -37,54 +34,56 @@ canvas {
     display: block;
     background: #110000;
     image-rendering: pixelated; 
-    width: 100%;
-    height: 100%;
+    width: 100%; height: 100%;
 }
 
-/* --- UI / MENU GENERIC--- */
-h1 { font-size: 40px; color: #ff0000; text-shadow: 4px 4px 0 #550000; margin-bottom: 30px; text-align: center; width: 100%; }
-h2 { font-size: 18px; color: #ffffff; margin-top: 15px; margin-bottom: 10px; text-align: center; width: 100%; }
+/* --- MAIN MENU STYLES --- */
 
+h1 { font-size: 40px; color: #ff0000; text-shadow: 4px 4px 0 #550000; margin-bottom: 20px; text-align: center; }
+h2 { font-size: 18px; color: #ffffff; margin-top: 10px; margin-bottom: 10px; text-align: center; }
+
+/* Der Container für Charaktere/Level */
 .selection-grid {
     display: flex;
-    flex-direction: row; /* WICHTIG: Immer erst mal nebeneinander */
+    flex-direction: row; /* ZWINGEND Nebeneinander */
+    flex-wrap: nowrap;   /* Kein Umbruch auf Desktop */
     justify-content: center;
     align-items: center;
     gap: 15px;
-    margin-bottom: 15px;
+    margin-bottom: 10px;
     padding: 10px;
     border-radius: 8px;
-    transition: 0.3s;
-    width: 90%; /* Nicht 100%, damit Padding wirkt */
-    margin-left: auto; margin-right: auto;
+    width: 100%;
+    box-sizing: border-box;
 }
 
+/* Visuelles Feedback für aktive Reihe */
 .selection-grid.active-group { border: 2px dashed #ffffff; background: rgba(50, 50, 0, 0.3); opacity: 1; }
 .selection-grid.inactive-group { border: 2px solid transparent; opacity: 0.4; }
 
+/* Die Karte selbst */
 .option-card {
     border: 2px solid #555; padding: 10px; cursor: pointer; text-align: center;
-    transition: 0.2s; width: 100px; 
-    display: flex; flex-direction: column; align-items: center;
+    transition: 0.2s; width: 100px; display: flex; flex-direction: column; align-items: center;
+    flex-shrink: 0; /* Verhindert das Quetschen */
 }
 .option-card.selected { border-color: #ff0000; background: #220000; box-shadow: 0 0 10px #ff0000; }
 .option-card:hover { border-color: #fff; transform: scale(1.05); }
 
-.preview-canvas { margin-bottom: 10px; border: 2px solid #333; background: #000; }
-.card-label { font-size: 12px; color: #ddd; }
+.preview-canvas { margin-bottom: 5px; border: 2px solid #333; background: #000; }
+.card-label { font-size: 10px; color: #ddd; margin-top: 5px; }
 
-/* Desktop: Pfeile standardmäßig ausblenden */
+/* Desktop: Pfeile und Mobile-Namen ausblenden */
 .nav-arrow { display: none; }
+.mobile-label { display: none; }
 
 /* Buttons */
 button.main-btn {
     background: #ff0000; color: white; border: none; padding: 15px 30px;
     font-family: inherit; font-size: 20px; cursor: pointer; margin-top: 20px;
-    box-shadow: 4px 4px 0 #550000; border: 4px solid transparent; 
-    display: block; margin-left: auto; margin-right: auto;
+    box-shadow: 4px 4px 0 #550000; border: 4px solid transparent; display: block; margin-left: auto; margin-right: auto;
 }
 button.main-btn.focused { background: #fff; color: #ff0000; border-color: #ff0000; animation: pulse 1s infinite; }
-
 .btn-secondary {
     background: #444; color: white; border: none; padding: 10px 20px;
     font-family: inherit; font-size: 14px; cursor: pointer; margin-top: 15px;
@@ -103,23 +102,16 @@ button.main-btn.focused { background: #fff; color: #ff0000; border-color: #ff000
 .controls-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; width: 80%; max-width: 400px; }
 .control-row { display: flex; justify-content: space-between; align-items: center; font-size: 16px; color: #ddd; }
 .key-btn { background: #333; border: 2px solid #555; color: #fff; padding: 8px 16px; cursor: pointer; width: 180px; text-align: center; font-family: inherit; font-size: 12px; margin-top: 0; box-shadow: none; }
-.key-btn:hover { background: #555; transform: none; }
 .key-btn.active { background: #aa0000; border-color: #ff0000; color: #fff; animation: pulse 0.5s infinite; }
 
 
-/* --- MOBILE CONTROLS (Standard) --- */
+/* --- MOBILE CONTROLS --- */
 #mobile-controls {
-    display: none; /* Standard aus */
-    position: fixed;
-    z-index: 1000;
-    pointer-events: none; 
-    left: 0; right: 0; bottom: 20px;
-    height: 150px;
-    padding: 0 40px;
-    justify-content: space-between;
-    align-items: center;
+    display: none; 
+    position: fixed; z-index: 1000; pointer-events: none; 
+    left: 0; right: 0; bottom: 20px; height: 150px;
+    padding: 0 40px; justify-content: space-between; align-items: center;
 }
-
 #joystick-area { pointer-events: auto; width: 140px; height: 140px; position: relative; }
 #joystick-base { width: 100px; height: 100px; background: rgba(255, 255, 255, 0.1); border: 2px solid rgba(255, 255, 255, 0.3); border-radius: 50%; position: absolute; top: 20px; left: 20px; }
 #joystick-stick { width: 50px; height: 50px; background: rgba(255, 0, 0, 0.5); border-radius: 50%; position: absolute; top: 25px; left: 25px; box-shadow: 0 0 10px rgba(255,0,0,0.5); transition: transform 0.1s; }
@@ -130,54 +122,65 @@ button.main-btn.focused { background: #fff; color: #ff0000; border-color: #ff000
 #btn-change { width: 60px; height: 60px; margin-bottom: 10px; background: rgba(0, 100, 255, 0.3); border-color: rgba(0, 100, 255, 0.5); }
 
 
-/* --- MOBILE / TOUCH OVERRIDES --- */
+/* --- MEDIA QUERIES (OVERRIDES) --- */
 
-/* 1. Touch erkannt: Controls theoretisch anzeigen */
+/* 1. Touch: Controls an (wenn nicht hidden) */
 @media (pointer: coarse) {
     #mobile-controls { display: flex; }
-    /* WICHTIG: .hidden Klasse MUSS stärker sein! */
     #mobile-controls.hidden { display: none !important; }
 }
 
-/* 2. PORTRAIT MODE FIX (Das eigentliche Handy-Layout) */
+/* 2. PORTRAIT MODE (Handy Vertikal) */
 @media (orientation: portrait) {
     body {
         justify-content: flex-start; /* Oben andocken */
     }
 
     #game-container {
-        /* Wichtig: Abstand von oben, Skalierung von oben */
-        margin-top: 20px !important;
+        margin-top: 10px !important;
         transform-origin: top center !important;
     }
 
-    /* CAROUSEL LOGIK FÜR PORTRAIT */
-    .nav-arrow {
-        display: block; /* Pfeile anzeigen */
-        font-size: 40px; color: #ff0000; cursor: pointer; 
-        padding: 0 15px; user-select: none; animation: pulse 1s infinite;
-    }
-
+    /* CAROUSEL LOGIK */
     .selection-grid {
-        justify-content: space-between; /* Pfeile außen, Item innen */
-        width: 95%; /* Fast volle Breite */
+        justify-content: space-between; /* Pfeile außen */
+        width: 100%;
+        padding: 0 5px;
     }
 
-    /* Nicht ausgewählte Items ausblenden! */
-    .option-card.hidden-option {
-        display: none !important;
+    /* Pfeile anzeigen */
+    .nav-arrow { 
+        display: block; 
+        font-size: 40px; color: #ff0000; cursor: pointer; padding: 0 10px; 
+        animation: pulse 1s infinite;
     }
 
-    /* Ausgewähltes Item vergrößern */
+    /* Namen unter dem Bild anzeigen */
+    .mobile-label {
+        display: block;
+        color: #ff0000; font-size: 16px; margin-top: 5px; text-align: center;
+        text-transform: uppercase;
+    }
+
+    /* Alle Karten ausblenden ... */
+    .option-card {
+        display: none;
+    }
+    
+    /* ... außer der ausgewählten! */
     .option-card.selected {
+        display: flex; /* Wieder anzeigen */
         transform: scale(1.4);
-        margin: 0;
+        margin: 0 10px;
         border-width: 3px;
     }
     
-    h1 { font-size: 40px; margin-bottom: 20px; margin-top: 10px; }
-    
-    /* Controls weiter unten positionieren */
+    /* Label innerhalb der Karte auf Mobile ausblenden (wir haben das große Label drunter) */
+    .option-card.selected .card-label {
+        display: none;
+    }
+
+    /* Controls Platzierung */
     #mobile-controls {
         bottom: 30px; 
         padding: 0 20px;
