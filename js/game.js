@@ -8,12 +8,67 @@ import { explodeBomb, triggerHellFire, killPlayer, spawnRandomIce } from './mech
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
-// ÄNDERUNG: Keine feste Zuweisung von canvas.width/height mehr hier, 
-// da CSS dies nun responsive regelt. Wir setzen die interne Auflösung passend.
+
+// FIX: Interne Auflösung fest auf 720px (15 Tiles * 48px)
 canvas.width = GRID_W * TILE_SIZE;
 canvas.height = GRID_H * TILE_SIZE;
 
 let gameLoopId;
+
+// --- RESPONSIVE SCALING LOGIC ---
+function resizeGame() {
+    const container = document.getElementById('game-container');
+    if (!container) return;
+
+    // Verfügbarer Platz im Fenster
+    const windowWidth = window.innerWidth;
+    const windowHeight = window.innerHeight;
+    
+    // Zielgröße des Spiels (fest definiert)
+    const gameSize = 720;
+    
+    // Platz für UI im Portrait Modus reservieren (unten)
+    // Wenn das Gerät hochkant ist (aspect ratio < 1), lassen wir unten Platz für die Controls
+    let availableHeight = windowHeight;
+    const isPortrait = windowHeight > windowWidth;
+    
+    if (isPortrait) {
+        // Reserviere Platz für Controls unten (ca. 200px oder 30% der Höhe)
+        // Aber das Spiel darf maximal so breit sein wie der Screen
+        // Wir nehmen einfach die volle Höhe minus etwas Buffer, das "contain" scaling regelt den Rest.
+        // Besser: Wir sorgen dafür, dass im Portrait Modus das Spiel oben klebt.
+        // Das passiert durch CSS "justify-content: flex-start".
+        // Wir müssen nur sicherstellen, dass wir nicht ÜBER den Screen hinaus skalieren.
+        
+        // Maximale Breite ist der limitierende Faktor im Portrait
+        // Maximale Höhe ist im Landscape der limitierende Faktor
+    }
+
+    // Berechne Skalierungsfaktor: Wir wollen, dass 720px in den Screen passen
+    // Wir lassen 20px Rand
+    const scaleX = (windowWidth - 20) / gameSize;
+    const scaleY = (windowHeight - 20) / gameSize;
+    
+    // Wähle den kleineren Faktor ("contain"), damit alles sichtbar bleibt
+    // Im Portrait-Modus begrenzen wir die Höhe stärker, um Platz für Buttons zu lassen?
+    // Eigentlich reicht "contain", wenn wir im CSS padding haben.
+    
+    let scale = Math.min(scaleX, scaleY);
+    
+    // Optional: Im Portrait-Modus das Spiel noch etwas kleiner machen, falls es zu riesig wirkt und Buttons verdeckt
+    if (isPortrait && scale * gameSize > windowHeight * 0.65) {
+       // Begrenze auf 65% der Höhe, damit unten Platz bleibt
+       scale = (windowHeight * 0.65) / gameSize;
+    }
+
+    container.style.transform = `scale(${scale})`;
+}
+
+// Event Listener für Resize
+window.addEventListener('resize', resizeGame);
+// Initialer Aufruf
+resizeGame();
+
 
 // --- SPIEL STARTEN ---
 window.startGame = function() {
@@ -23,8 +78,8 @@ window.startGame = function() {
     document.getElementById('pause-btn').classList.remove('hidden'); 
     document.getElementById('mobile-controls').classList.remove('hidden');
 
-    // Mobile Controls aktivieren, falls auf Touch-Device (durch CSS sichtbar)
-    // Logik wird unten initialisiert
+    // Trigger Resize nochmal, um sicherzugehen
+    resizeGame();
 
     const userChar = CHARACTERS[state.selectedCharIndex];
     state.currentLevel = LEVELS[state.selectedLevelKey];
