@@ -4,7 +4,6 @@ import { drawCharacterSprite, drawLevelPreview } from './graphics.js';
 
 let remappingAction = null;
 
-// --- HUD UPDATE (aus Player Klasse ausgelagert) ---
 export function updateHud(player) {
     const elType = document.getElementById('bomb-type');
     if (elType) {
@@ -20,13 +19,31 @@ export function updateHud(player) {
     if (elFire) elFire.innerText = `🔥 ${player.bombRange}`;
 }
 
+// Helper: Zyklisches Navigieren
+function changeSelection(type, dir) {
+    if (type === 'char') {
+        const len = CHARACTERS.length;
+        state.selectedCharIndex = (state.selectedCharIndex + dir + len) % len;
+    } else {
+        const keys = Object.keys(LEVELS);
+        const currentIndex = keys.indexOf(state.selectedLevelKey);
+        const len = keys.length;
+        const newIndex = (currentIndex + dir + len) % len;
+        state.selectedLevelKey = keys[newIndex];
+    }
+    initMenu();
+}
+
 // --- MENÜ STEUERUNG ---
 export function initMenu() {
     const charContainer = document.getElementById('char-select');
-    charContainer.innerHTML = '';
     const levelContainer = document.getElementById('level-select');
+    
+    // Leeren
+    charContainer.innerHTML = '';
     levelContainer.innerHTML = '';
     
+    // State Visualisierung (Reihen-Fokus)
     if (state.menuState === 0) {
         charContainer.classList.add('active-group'); charContainer.classList.remove('inactive-group');
         levelContainer.classList.add('inactive-group'); levelContainer.classList.remove('active-group');
@@ -40,9 +57,30 @@ export function initMenu() {
         document.getElementById('start-game-btn').classList.add('focused');
     }
 
+    // --- CAROUSEL BUTTONS GENERIEREN ---
+    const createArrow = (dir, type) => {
+        const btn = document.createElement('div');
+        btn.className = `nav-arrow ${dir > 0 ? 'right' : 'left'}`;
+        btn.innerText = dir > 0 ? '▶' : '◀';
+        btn.onclick = (e) => { 
+            e.stopPropagation(); // Verhindert Klick auf Container
+            // Setze Menu State korrekt, falls man klickt
+            state.menuState = (type === 'char') ? 0 : 1;
+            changeSelection(type, dir); 
+        };
+        return btn;
+    };
+
+    // --- CHARACTER LISTE BAUEN ---
+    // Linker Pfeil
+    charContainer.appendChild(createArrow(-1, 'char'));
+
     CHARACTERS.forEach((char, index) => {
         const div = document.createElement('div');
-        div.className = `option-card ${index === state.selectedCharIndex ? 'selected' : ''}`;
+        const isSelected = index === state.selectedCharIndex;
+        // WICHTIG: Klasse 'hidden-option' für nicht ausgewählte Items (CSS steuert Sichtbarkeit)
+        div.className = `option-card ${isSelected ? 'selected' : 'hidden-option'}`;
+        
         div.onclick = () => { state.menuState = 0; state.selectedCharIndex = index; initMenu(); };
         
         const pCanvas = document.createElement('canvas'); 
@@ -55,14 +93,24 @@ export function initMenu() {
         label.className = 'card-label'; 
         label.innerText = char.name;
         div.appendChild(label);
+        
         charContainer.appendChild(div);
     });
+
+    // Rechter Pfeil
+    charContainer.appendChild(createArrow(1, 'char'));
+
+
+    // --- LEVEL LISTE BAUEN ---
+    // Linker Pfeil
+    levelContainer.appendChild(createArrow(-1, 'level'));
 
     Object.keys(LEVELS).forEach((key) => {
         const lvl = LEVELS[key];
         const div = document.createElement('div');
         const isSelected = key === state.selectedLevelKey;
-        div.className = `option-card ${isSelected ? 'selected' : ''}`;
+        
+        div.className = `option-card ${isSelected ? 'selected' : 'hidden-option'}`;
         div.onclick = () => { state.menuState = 1; state.selectedLevelKey = key; initMenu(); };
         
         const lCanvas = document.createElement('canvas'); 
@@ -75,21 +123,24 @@ export function initMenu() {
         label.className = 'card-label'; 
         label.innerText = lvl.name;
         div.appendChild(label);
+        
         levelContainer.appendChild(div);
     });
+
+    // Rechter Pfeil
+    levelContainer.appendChild(createArrow(1, 'level'));
 }
 
 export function handleMenuInput(code) {
     const levelKeys = Object.keys(LEVELS);
-    const currentLevelIndex = levelKeys.indexOf(state.selectedLevelKey);
-
+    
     if (state.menuState === 0) {
-        if (code === 'ArrowLeft') { state.selectedCharIndex = (state.selectedCharIndex - 1 + CHARACTERS.length) % CHARACTERS.length; initMenu(); }
-        else if (code === 'ArrowRight') { state.selectedCharIndex = (state.selectedCharIndex + 1) % CHARACTERS.length; initMenu(); }
+        if (code === 'ArrowLeft') changeSelection('char', -1);
+        else if (code === 'ArrowRight') changeSelection('char', 1);
         else if (code === 'Enter' || code === 'Space' || code === 'ArrowDown') { state.menuState = 1; initMenu(); }
     } else if (state.menuState === 1) {
-        if (code === 'ArrowLeft') { state.selectedLevelKey = levelKeys[(currentLevelIndex - 1 + levelKeys.length) % levelKeys.length]; initMenu(); }
-        else if (code === 'ArrowRight') { state.selectedLevelKey = levelKeys[(currentLevelIndex + 1) % levelKeys.length]; initMenu(); }
+        if (code === 'ArrowLeft') changeSelection('level', -1);
+        else if (code === 'ArrowRight') changeSelection('level', 1);
         else if (code === 'Enter' || code === 'Space' || code === 'ArrowDown') { state.menuState = 2; initMenu(); }
         else if (code === 'ArrowUp' || code === 'Escape') { state.menuState = 0; initMenu(); }
     } else if (state.menuState === 2) {
@@ -101,7 +152,6 @@ export function handleMenuInput(code) {
 }
 
 export function showMenu() {
-    // UI Reset
     document.getElementById('main-menu').classList.remove('hidden');
     document.getElementById('game-over').classList.add('hidden');
     document.getElementById('ui-layer').classList.add('hidden');
@@ -109,7 +159,7 @@ export function showMenu() {
     document.getElementById('pause-menu').classList.add('hidden'); 
     document.getElementById('controls-menu').classList.add('hidden');
     
-    // ÄNDERUNG: Mobile Controls im Menü ausblenden
+    // Sicherstellen, dass Controls weg sind
     const mobControls = document.getElementById('mobile-controls');
     if (mobControls) mobControls.classList.add('hidden');
     
@@ -117,7 +167,6 @@ export function showMenu() {
     initMenu();
 }
 
-// --- PAUSE & GAME OVER UI ---
 export function togglePause() {
     if (state.isGameOver) { showMenu(); return; }
     if (!document.getElementById('main-menu').classList.contains('hidden')) return;
@@ -132,31 +181,25 @@ export function quitGame() {
     showMenu();
 }
 
-// ANPASSUNG: Neuer Parameter 'winner' hinzugefügt
 export function endGame(msg, winner) {
     if (state.isGameOver) return; 
     state.isGameOver = true; 
     setTimeout(() => {
         const titleEl = document.getElementById('go-title');
-        
-        // Prüfen, ob es einen Gewinner gibt und ob dieser die ID 1 (Spieler 1) hat
         if (winner && winner.id === 1) {
             titleEl.innerText = "YOU WON";
-            titleEl.style.color = "#00ff00"; // Grün
-            titleEl.style.textShadow = "4px 4px 0 #005500"; // Passender Schatten
+            titleEl.style.color = "#00ff00"; 
+            titleEl.style.textShadow = "4px 4px 0 #005500"; 
         } else {
-            // Standard wiederherstellen (wichtig für Neustarts)
             titleEl.innerText = "GAME OVER";
-            titleEl.style.color = "#ff0000"; // Rot
+            titleEl.style.color = "#ff0000"; 
             titleEl.style.textShadow = "4px 4px 0 #550000";
         }
-
         document.getElementById('go-message').innerText = msg;
         document.getElementById('game-over').classList.remove('hidden');
     }, 3000);
 }
 
-// --- CONTROLS MENU ---
 export function showControls() {
     document.getElementById('main-menu').classList.add('hidden');
     document.getElementById('controls-menu').classList.remove('hidden');
@@ -171,17 +214,13 @@ function initControlsMenu() {
     Object.keys(keyBindings).forEach(action => {
         const row = document.createElement('div');
         row.className = 'control-row';
-        
         const label = document.createElement('span');
         label.innerText = action;
-        
         const btn = document.createElement('button');
         btn.className = 'key-btn';
         btn.innerText = remappingAction === action ? 'PRESS KEY...' : formatKey(keyBindings[action]);
         if (remappingAction === action) btn.classList.add('active');
-        
         btn.onclick = () => startRemap(action);
-        
         row.appendChild(label);
         row.appendChild(btn);
         container.appendChild(row);
@@ -193,13 +232,11 @@ function startRemap(action) {
     initControlsMenu(); 
 }
 
-// Globale Funktionen ans Fenster hängen, damit HTML-Buttons funktionieren
 window.showControls = showControls;
 window.togglePause = togglePause;
 window.quitGame = quitGame;
 window.showMenu = showMenu;
 
-// Event Listener für Key-Remapping (global, aber hier verwaltet)
 window.addEventListener('keydown', e => {
     if (remappingAction) {
         e.preventDefault();
