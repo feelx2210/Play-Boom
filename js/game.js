@@ -13,7 +13,7 @@ canvas.height = GRID_H * TILE_SIZE;
 
 let gameLoopId;
 
-// --- START GAME ---
+// --- SPIEL STARTEN ---
 window.startGame = function() {
     document.getElementById('main-menu').classList.add('hidden');
     document.getElementById('game-over').classList.add('hidden');
@@ -60,7 +60,7 @@ window.startGame = function() {
             else if ((state.currentLevel.id === 'hell' || state.currentLevel.id === 'ice') && BOOST_PADS.some(p => p.x === x && p.y === y)) {
                 row.push(TYPES.EMPTY);
             }
-            // NEU: Richtungsfelder müssen leer sein
+            // Richtungsfelder müssen leer sein
             else if (DIRECTION_PADS.some(p => p.x === x && p.y === y)) {
                 row.push(TYPES.EMPTY);
             }
@@ -164,7 +164,7 @@ function update() {
     for (let i = state.bombs.length - 1; i >= 0; i--) {
         let b = state.bombs[i]; b.timer--;
         if (b.isRolling) {
-            // NEU: Richtungsfelder Check
+            // Richtungsfelder Check
             const dirPad = DIRECTION_PADS.find(p => p.x === b.gx && p.y === b.gy);
             // Wenn Pad gefunden und Bombe rollt noch nicht in diese Richtung
             if (dirPad && (b.rollDir.x !== dirPad.dir.x || b.rollDir.y !== dirPad.dir.y)) {
@@ -250,7 +250,6 @@ function update() {
     state.players.forEach(p => { 
         if (p.inFire) { 
             p.fireTimer++; 
-            // ÄNDERUNG: Toleranz erhöht auf 30 Frames (0.5s)
             if (p.fireTimer >= 30) { 
                 killPlayer(p); 
                 p.fireTimer = 0; 
@@ -261,17 +260,27 @@ function update() {
     let aliveCount = 0; let livingPlayers = [];
     state.players.forEach(p => { p.update(); if (p.alive) { aliveCount++; livingPlayers.push(p); } });
 
+    // NEU: Kollisionslogik für Ansteckung
     for (let i = 0; i < livingPlayers.length; i++) {
         for (let j = i + 1; j < livingPlayers.length; j++) {
             const p1 = livingPlayers[i]; const p2 = livingPlayers[j];
             const dist = Math.hypot(p1.x - p2.x, p1.y - p2.y);
+            
             if (dist < TILE_SIZE * 0.8) {
-                if (p1.skullEffect && !p2.skullEffect) { p2.skullEffect = p1.skullEffect; p2.skullTimer = 600; createFloatingText(p2.x, p2.y, "INFECTED!", "#ff00ff"); }
-                else if (p2.skullEffect && !p1.skullEffect) { p1.skullEffect = p2.skullEffect; p1.skullTimer = 600; createFloatingText(p1.x, p1.y, "INFECTED!", "#ff00ff"); }
+                // P1 steckt P2 an (wenn P1 Flüche hat und P2 keine)
+                if (p1.activeCurses.length > 0 && p2.activeCurses.length === 0) {
+                    p1.activeCurses.forEach(c => p2.addCurse(c.type));
+                    createFloatingText(p2.x, p2.y, "INFECTED!", "#ff00ff");
+                }
+                // P2 steckt P1 an (wenn P2 Flüche hat und P1 keine)
+                else if (p2.activeCurses.length > 0 && p1.activeCurses.length === 0) {
+                    p2.activeCurses.forEach(c => p1.addCurse(c.type));
+                    createFloatingText(p1.x, p1.y, "INFECTED!", "#ff00ff");
+                }
             }
         }
     }
-    // ÄNDERUNG: Winner Übergabe
+    
     if (state.players.length > 1 && aliveCount <= 1) { 
         const winner = livingPlayers.length > 0 ? livingPlayers[0] : null; 
         endGame(winner ? winner.name + " WINS!" : "DRAW!", winner); 
