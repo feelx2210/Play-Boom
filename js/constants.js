@@ -23,10 +23,10 @@ export const BOOST_PADS = [
 
 // ANGEPASST: Exakte Richtungen wie angefordert
 export const DIRECTION_PADS = [
-    { x: 3, y: 3, dir: {x: 0, y: -1} },   // Kachel 3/3: Pfeil oben
-    { x: 3, y: 11, dir: {x: 1, y: 0} },   // Kachel 3/11: Pfeil rechts
-    { x: 11, y: 11, dir: {x: 0, y: 1} },  // Kachel 11/11: Pfeil unten
-    { x: 11, y: 3, dir: {x: -1, y: 0} }   // Kachel 11/3: Pfeil links
+    { x: 3, y: 3, dir: {x: 1, y: 0} },    // Oben Links -> Rechts
+    { x: 11, y: 3, dir: {x: 0, y: 1} },   // Oben Rechts -> Unten
+    { x: 11, y: 11, dir: {x: -1, y: 0} }, // Unten Rechts -> Links
+    { x: 3, y: 11, dir: {x: 0, y: -1} }   // Unten Links -> Oben
 ];
 
 export const OIL_PADS = [
