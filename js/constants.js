@@ -21,12 +21,12 @@ export const BOOST_PADS = [
     {x: 5, y: 5}, {x: 9, y: 5}, {x: 5, y: 9}, {x: 9, y: 9}
 ];
 
-// NEU: Richtungsfelder für rollende Bomben
+// ANGEPASST: Exakte Richtungen wie angefordert
 export const DIRECTION_PADS = [
-    { x: 3, y: 3, dir: {x: 0, y: -1} },   // Pfeil oben
-    { x: 3, y: 11, dir: {x: 1, y: 0} },   // Pfeil rechts
-    { x: 11, y: 11, dir: {x: 0, y: 1} },  // Pfeil unten
-    { x: 11, y: 3, dir: {x: -1, y: 0} }   // Pfeil links
+    { x: 3, y: 3, dir: {x: 0, y: -1} },   // Kachel 3/3: Pfeil oben
+    { x: 3, y: 11, dir: {x: 1, y: 0} },   // Kachel 3/11: Pfeil rechts
+    { x: 11, y: 11, dir: {x: 0, y: 1} },  // Kachel 11/11: Pfeil unten
+    { x: 11, y: 3, dir: {x: -1, y: 0} }   // Kachel 11/3: Pfeil links
 ];
 
 export const OIL_PADS = [
