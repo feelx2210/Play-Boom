@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>BOOM: Final Version</title>
+    <title>BOOM: Mobile Edition</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -23,23 +23,25 @@
     </div>
 
     <div id="main-menu" class="screen">
-        <h1 class="game-title">BOOM</h1>
-        
-        <div class="menu-section">
-            <h2>SELECT PLAYER</h2>
-            <div class="selection-grid" id="char-select"></div>
-            <div class="mobile-label" id="char-name-display"></div>
-        </div>
+        <div class="menu-content">
+            <h1 class="game-title">BOOM</h1>
+            
+            <div class="menu-section">
+                <h2>SELECT PLAYER</h2>
+                <div class="selection-grid" id="char-select"></div>
+                <div class="mobile-label" id="char-name-display">RAMBO</div>
+            </div>
 
-        <div class="menu-section">
-            <h2>SELECT LEVEL</h2>
-            <div class="selection-grid" id="level-select"></div>
-            <div class="mobile-label" id="level-name-display"></div>
-        </div>
+            <div class="menu-section">
+                <h2>SELECT LEVEL</h2>
+                <div class="selection-grid" id="level-select"></div>
+                <div class="mobile-label" id="level-name-display">HELL</div>
+            </div>
 
-        <div class="menu-footer">
-            <button id="start-game-btn" class="main-btn" onclick="startGame()">START GAME</button>
-            <button class="btn-secondary" onclick="showControls()">CONTROLS</button>
+            <div class="menu-footer">
+                <button id="start-game-btn" class="main-btn" onclick="startGame()">START GAME</button>
+                <button class="btn-secondary desktop-only" onclick="showControls()">CONTROLS</button>
+            </div>
         </div>
     </div>
 

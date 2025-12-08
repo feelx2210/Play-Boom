@@ -1,6 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
 
-/* --- GLOBAL SETTINGS --- */
+/* --- GLOBAL --- */
 body {
     background-color: #050505;
     color: #ff3333;
@@ -19,55 +19,54 @@ body {
 
 #game-container {
     position: relative;
-    width: 720px; 
-    height: 720px;
-    box-shadow: 0 0 20px #ff0000;
-    border: 4px solid #550000;
-    background-color: #000;
-    transform-origin: center center;
-    flex-shrink: 0; 
-    transition: transform 0.2s; 
+    width: 720px; height: 720px;
+    box-shadow: 0 0 20px #ff0000; border: 4px solid #550000; background-color: #000;
+    transform-origin: center center; flex-shrink: 0; transition: transform 0.2s; 
 }
 
 canvas { display: block; background: #110000; image-rendering: pixelated; width: 100%; height: 100%; }
 
-/* --- MENU DESKTOP STANDARD (Querformat/PC) --- */
-h1 { font-size: 40px; color: #ff0000; text-shadow: 4px 4px 0 #550000; margin-bottom: 20px; text-align: center; }
-h2 { font-size: 18px; color: #ffffff; margin-top: 15px; margin-bottom: 10px; text-align: center; }
+/* --- MENÜ DESKTOP (Standard) --- */
+.screen {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.95); z-index: 20;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+}
 
-/* Desktop: Einfache Reihe nebeneinander */
+h1 { font-size: 40px; color: #ff0000; text-shadow: 4px 4px 0 #550000; margin-bottom: 30px; text-align: center; }
+h2 { font-size: 18px; color: #ffffff; margin-bottom: 15px; text-align: center; }
+
+/* Grid Container für Items */
 .selection-grid {
     display: flex;
-    flex-direction: row;
+    flex-direction: row; /* Desktop: Nebeneinander */
     justify-content: center;
-    gap: 15px;
-    margin-bottom: 20px;
-    padding: 10px;
+    gap: 20px;
+    margin-bottom: 30px;
     width: 100%;
 }
 
 .option-card {
     border: 2px solid #555; padding: 10px; cursor: pointer; text-align: center;
-    transition: all 0.3s ease; /* Weiche Animation für Position und Scale */
-    width: 100px; 
+    transition: all 0.3s ease; width: 100px;
     display: flex; flex-direction: column; align-items: center;
     background: #000;
-    z-index: 1;
+    z-index: 1; position: relative; /* Default relative für Desktop */
 }
 
-.option-card.selected { border-color: #ff0000; background: #220000; box-shadow: 0 0 10px #ff0000; z-index: 10; }
+.option-card.selected { border-color: #ff0000; background: #220000; box-shadow: 0 0 10px #ff0000; transform: scale(1.1); z-index: 10; }
 .preview-canvas { margin-bottom: 5px; border: 2px solid #333; background: #000; }
 .card-label { font-size: 10px; color: #ddd; margin-top: 5px; text-transform: uppercase; }
 
-/* Mobile Elemente im Desktop verstecken */
-.nav-arrow { display: none; }
+/* Mobile Elemente im Desktop ausblenden */
 .mobile-label { display: none; }
+.nav-arrow { display: none; }
 
 /* Buttons */
 button.main-btn {
-    background: #ff0000; color: white; border: none; padding: 15px 30px;
-    font-family: inherit; font-size: 20px; cursor: pointer; margin-top: 20px;
-    box-shadow: 4px 4px 0 #550000; border: 4px solid transparent; display: block; margin-left: auto; margin-right: auto;
+    background: #ff0000; color: white; border: none; padding: 15px 40px;
+    font-family: inherit; font-size: 24px; cursor: pointer; margin-top: 10px;
+    box-shadow: 4px 4px 0 #550000; border: 4px solid transparent; 
 }
 .btn-secondary {
     background: #444; color: white; border: none; padding: 10px 20px;
@@ -78,7 +77,6 @@ button.main-btn {
 /* UI Overlays */
 #ui-layer { position: absolute; top: 10px; left: 10px; right: 10px; display: flex; pointer-events: none; z-index: 10; }
 #pause-btn { position: absolute; top: 10px; right: 10px; width: 30px; height: 30px; background: rgba(50, 0, 0, 0.8); border: 2px solid #ff0000; color: #fff; font-weight: bold; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 100; pointer-events: auto; }
-.screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.95); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 20; pointer-events: auto; }
 .hud-item { background: rgba(0,0,0,0.5); padding: 5px 10px; border-radius: 4px; color: #fff; font-size: 14px; display: flex; gap: 15px; }
 .hidden { display: none !important; }
 
@@ -106,93 +104,115 @@ button.main-btn {
 /* === MOBILE PORTRAIT LAYOUT (THE FIX) === */
 @media (orientation: portrait) {
     body {
-        justify-content: flex-start;
+        justify-content: flex-start; /* Alles oben ausrichten */
     }
 
     #game-container {
-        margin-top: 10px !important;
+        margin-top: 0px !important;
         transform-origin: top center !important;
     }
 
-    h1 { margin-top: 40px; margin-bottom: 10px; font-size: 36px; }
-    h2 { font-size: 16px; margin-top: 10px; margin-bottom: 5px; }
-
-    /* Container muss RELATIV sein, aber KEIN Flexbox Layout für die Kinder */
-    .selection-grid {
-        position: relative;
-        height: 140px; /* Fester Platz für das Carousel */
+    /* Das Menü-Layout neu strukturieren */
+    .menu-content {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
         width: 100%;
-        display: block; /* Flexbox ausschalten! */
-        overflow: visible;
-        margin-bottom: 0;
+        height: 100%;
+        padding-top: 40px; /* Abstand von oben */
     }
 
-    /* Die Karten werden ABSOLUT positioniert und übereinander gelegt */
+    /* Abstände zwischen den Sektionen */
+    .menu-section {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin-bottom: 30px; /* Platz zwischen Player und Level */
+        position: relative;
+    }
+
+    h1 { margin-bottom: 20px; font-size: 40px; }
+    h2 { font-size: 16px; margin-bottom: 10px; color: #aaa; }
+
+    /* FIXED HEIGHT CONTAINER FÜR KARUSSELL */
+    /* Das ist der wichtigste Fix, damit nichts überlappt */
+    .selection-grid {
+        position: relative;
+        display: block; /* Kein Flex mehr */
+        height: 130px; /* Reservierter Platz für Karten */
+        width: 100%;
+        margin-bottom: 5px;
+    }
+
+    /* KARTEN POSITIONIERUNG (Absolut) */
     .option-card {
         position: absolute;
         top: 10px;
-        left: 50%; /* Startpunkt Mitte */
-        /* Standardmäßig versteckt oder klein */
-        transform: translateX(-50%) scale(0.5); 
-        opacity: 0; 
-        pointer-events: none; 
+        left: 50%;
+        /* Default State (versteckt/klein) */
+        transform: translateX(-50%) scale(0.5);
+        opacity: 0;
+        pointer-events: none;
     }
 
-    /* --- CAROUSEL LOGIK VIA ATTRIBUTE (JS setzt diese) --- */
+    /* --- CAROUSEL LOGIC --- */
     
-    /* Center Item (Ausgewählt) */
+    /* Center (Active) */
     .option-card[data-pos="center"] {
-        opacity: 1;
-        z-index: 10;
+        opacity: 1; z-index: 10;
         transform: translateX(-50%) scale(1.3);
-        border-color: #ff0000;
-        box-shadow: 0 0 15px #ff0000;
+        border-color: #ff0000; box-shadow: 0 0 15px #ff0000;
         pointer-events: auto;
     }
 
-    /* Left Item (Vorheriges) - Verdunkelt links */
+    /* Left (Dimmed) */
     .option-card[data-pos="left"] {
-        opacity: 0.4;
-        z-index: 5;
-        transform: translateX(-160%) scale(0.9); /* Nach links schieben */
-        border-color: #555;
+        opacity: 0.3; z-index: 5;
+        transform: translateX(-160%) scale(0.9);
         filter: grayscale(100%);
-        pointer-events: auto; /* Klickbar zum Wechseln */
+        pointer-events: auto;
     }
 
-    /* Right Item (Nächstes) - Verdunkelt rechts */
+    /* Right (Dimmed) */
     .option-card[data-pos="right"] {
-        opacity: 0.4;
-        z-index: 5;
-        transform: translateX(60%) scale(0.9); /* Nach rechts schieben */
-        border-color: #555;
+        opacity: 0.3; z-index: 5;
+        transform: translateX(60%) scale(0.9);
         filter: grayscale(100%);
-        pointer-events: auto; /* Klickbar zum Wechseln */
+        pointer-events: auto;
     }
 
-    /* Name nur beim Center Item anzeigen */
-    .option-card[data-pos="center"] .card-label {
-        font-size: 12px; font-weight: bold; color: #fff; display: block;
-    }
-    .option-card[data-pos="left"] .card-label,
-    .option-card[data-pos="right"] .card-label {
-        display: none; 
+    /* Text-Label unter dem Bild */
+    .mobile-label {
+        display: block;
+        color: #ff0000; font-size: 18px; font-weight: bold;
+        text-transform: uppercase; margin-top: 5px;
+        text-shadow: 2px 2px 0 #000;
     }
 
-    /* Start Button fetter */
+    /* Karten-Label ausblenden (wir nutzen das große drunter) */
+    .card-label { display: none !important; }
+
+    /* Footer / Start Button */
+    .menu-footer {
+        margin-top: 20px;
+        width: 100%;
+        display: flex;
+        justify-content: center;
+    }
+
     button.main-btn {
-        margin-top: 10px;
         width: 80%;
         padding: 20px;
         font-size: 24px;
+        margin-top: 0;
     }
 
-    /* Controls Button ausblenden im Portrait Mode */
-    .btn-secondary {
-        display: none;
-    }
+    /* Controls Button ausblenden */
+    .desktop-only { display: none !important; }
     
-    /* Controls Overlay weiter unten */
+    /* Joystick Platzierung */
     #mobile-controls {
         bottom: 30px; padding: 0 20px; align-items: flex-end;
     }

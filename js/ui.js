@@ -19,7 +19,15 @@ export function updateHud(player) {
     if (elFire) elFire.innerText = `🔥 ${player.bombRange}`;
 }
 
-// Allgemeine Navigations-Logik
+// Update Namen unter dem Karussell
+function updateMobileLabels() {
+    const charNameEl = document.getElementById('char-name-display');
+    if (charNameEl) charNameEl.innerText = CHARACTERS[state.selectedCharIndex].name;
+    
+    const levelNameEl = document.getElementById('level-name-display');
+    if (levelNameEl) levelNameEl.innerText = LEVELS[state.selectedLevelKey].name;
+}
+
 function changeSelection(type, dir) {
     if (type === 'char') {
         const len = CHARACTERS.length;
@@ -31,50 +39,42 @@ function changeSelection(type, dir) {
         const newIndex = (currentIndex + dir + len) % len;
         state.selectedLevelKey = keys[newIndex];
     }
-    initMenu(); // Re-Render
+    initMenu(); 
 }
 
-// --- MENÜ INIT ---
 export function initMenu() {
     const charContainer = document.getElementById('char-select');
     const levelContainer = document.getElementById('level-select');
     
-    // Alte Inhalte löschen
     charContainer.innerHTML = '';
     levelContainer.innerHTML = '';
     
-    // State Visualisierung
-    if (state.menuState === 0) {
-        document.getElementById('start-game-btn').classList.remove('focused');
-    } else if (state.menuState === 2) {
-        document.getElementById('start-game-btn').classList.add('focused');
-    }
+    updateMobileLabels();
 
-    // --- HELPER ZUM RENDERN EINER KARTE MIT DATA-POS ---
+    if (state.menuState === 0) document.getElementById('start-game-btn').classList.remove('focused');
+    else if (state.menuState === 2) document.getElementById('start-game-btn').classList.add('focused');
+
+    // RENDERING HELPER
     const renderCard = (container, type, index, data, isSelected) => {
         const div = document.createElement('div');
         div.className = `option-card ${isSelected ? 'selected' : ''}`;
         
-        // --- KEY LOGIC: POSITION BERECHNEN ---
+        // POSITIONSBERECHNUNG FÜR CAROUSEL
         let total = (type === 'char') ? CHARACTERS.length : Object.keys(LEVELS).length;
         let selectedIdx = (type === 'char') ? state.selectedCharIndex : Object.keys(LEVELS).indexOf(state.selectedLevelKey);
         
-        // Ring-Buffer Logik für Nachbarn
         let pos = 'hidden';
         if (index === selectedIdx) pos = 'center';
         else if (index === (selectedIdx - 1 + total) % total) pos = 'left';
         else if (index === (selectedIdx + 1) % total) pos = 'right';
         
-        // Attribut setzen für CSS Selektor
         div.setAttribute('data-pos', pos);
 
-        // Click Handler (Ermöglicht Klick auf Nachbarn zum Wechseln)
         div.onclick = (e) => {
             e.stopPropagation();
             if (pos === 'left') changeSelection(type, -1);
             else if (pos === 'right') changeSelection(type, 1);
             else if (pos === 'center') {
-                // Focus State update
                 state.menuState = (type === 'char') ? 0 : 1;
                 initMenu();
             }
@@ -93,53 +93,37 @@ export function initMenu() {
             drawLevelPreview(ctx, 48, 48, data);
             name = data.name;
         }
-        
         div.appendChild(pCanvas);
+        
         const label = document.createElement('div');
-        label.className = 'card-label';
-        label.innerText = name;
+        label.className = 'card-label'; label.innerText = name;
         div.appendChild(label);
 
         container.appendChild(div);
     };
 
-    // 1. CHARACTERS RENDERN
     CHARACTERS.forEach((char, idx) => {
         renderCard(charContainer, 'char', idx, char, idx === state.selectedCharIndex);
     });
 
-    // 2. LEVELS RENDERN
     const levelKeys = Object.keys(LEVELS);
     levelKeys.forEach((key, idx) => {
         renderCard(levelContainer, 'level', idx, LEVELS[key], key === state.selectedLevelKey);
     });
 
-    // SWIPE LOGIC HINZUFÜGEN
     addSwipeSupport(charContainer, 'char');
     addSwipeSupport(levelContainer, 'level');
 }
 
-// SWIPE DETEKTOR
 function addSwipeSupport(element, type) {
     let startX = 0;
     let endX = 0;
-
     element.ontouchstart = (e) => { startX = e.changedTouches[0].screenX; };
     element.ontouchend = (e) => {
         endX = e.changedTouches[0].screenX;
-        handleSwipe();
+        if (endX < startX - 30) changeSelection(type, 1); // Swipe Left -> Next
+        else if (endX > startX + 30) changeSelection(type, -1); // Swipe Right -> Prev
     };
-
-    function handleSwipe() {
-        const threshold = 30; // Mindestens 30px wischen
-        if (endX < startX - threshold) {
-            // Swipe Left (Finger nach links) -> Wir wollen nach rechts weiterblättern
-            changeSelection(type, 1);
-        } else if (endX > startX + threshold) {
-            // Swipe Right -> Wir wollen zurückblättern
-            changeSelection(type, -1);
-        }
-    }
 }
 
 export function handleMenuInput(code) {
@@ -167,7 +151,6 @@ export function showMenu() {
     document.getElementById('pause-menu').classList.add('hidden'); 
     document.getElementById('controls-menu').classList.add('hidden');
     
-    // FIX: Controls ausblenden
     const mobControls = document.getElementById('mobile-controls');
     if (mobControls) mobControls.classList.add('hidden');
     
