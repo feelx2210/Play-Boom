@@ -78,8 +78,13 @@ window.startGame = function() {
     document.getElementById('pause-btn').classList.remove('hidden'); 
     document.getElementById('mobile-controls').classList.remove('hidden');
 
-    // Trigger Resize nochmal, um sicherzugehen
+    // WICHTIG: Mobile Controls hier aktivieren!
+    const mobControls = document.getElementById('mobile-controls');
+    if (mobControls) mobControls.classList.remove('hidden');
+
     resizeGame();
+
+    const userChar = CHARACTERS[state.selectedCharIndex];
 
     const userChar = CHARACTERS[state.selectedCharIndex];
     state.currentLevel = LEVELS[state.selectedLevelKey];
