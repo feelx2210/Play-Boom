@@ -19,7 +19,7 @@ export function updateHud(player) {
     if (elFire) elFire.innerText = `🔥 ${player.bombRange}`;
 }
 
-// Update Mobile Labels (Name unter Carousel)
+// Update Mobile Labels (Name unter Carousel in small)
 function updateMobileLabels() {
     const charNameEl = document.getElementById('char-name-display');
     if (charNameEl) charNameEl.innerText = CHARACTERS[state.selectedCharIndex].name;
