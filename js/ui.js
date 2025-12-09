@@ -19,14 +19,6 @@ export function updateHud(player) {
     if (elFire) elFire.innerText = `🔥 ${player.bombRange}`;
 }
 
-// Mobile Label Update (nur für Struktur, falls benötigt)
-function updateMobileLabels() {
-    const charNameEl = document.getElementById('char-name-display');
-    if (charNameEl) charNameEl.innerText = CHARACTERS[state.selectedCharIndex].name;
-    const levelNameEl = document.getElementById('level-name-display');
-    if (levelNameEl) levelNameEl.innerText = LEVELS[state.selectedLevelKey].name;
-}
-
 // Navigation Helper
 function changeSelection(type, dir) {
     if (type === 'char') {
@@ -50,9 +42,7 @@ export function initMenu() {
     charContainer.innerHTML = '';
     levelContainer.innerHTML = '';
     
-    updateMobileLabels();
-
-    // Visual Feedback Desktop
+    // VISUAL FEEDBACK FÜR DESKTOP
     if (state.menuState === 0) { 
         charContainer.classList.add('active-group'); charContainer.classList.remove('inactive-group');
         levelContainer.classList.add('inactive-group'); levelContainer.classList.remove('active-group');
@@ -67,7 +57,7 @@ export function initMenu() {
         startBtn.classList.add('focused');
     }
 
-    // Helper: Karte rendern
+    // HELPER: KARTE RENDERN
     const renderCard = (container, type, index, data, isSelected) => {
         const div = document.createElement('div');
         div.className = `option-card ${isSelected ? 'selected' : ''}`;
@@ -118,7 +108,7 @@ export function initMenu() {
     });
 }
 
-// Keyboard Input
+// KEYBOARD INPUT
 export function handleMenuInput(code) {
     if (state.menuState === 0) {
         if (code === 'ArrowLeft') changeSelection('char', -1);
@@ -143,6 +133,7 @@ export function showMenu() {
     document.getElementById('pause-menu').classList.add('hidden'); 
     document.getElementById('controls-menu').classList.add('hidden');
     
+    // Controls aus
     const mobControls = document.getElementById('mobile-controls');
     if (mobControls) mobControls.classList.add('hidden');
     
