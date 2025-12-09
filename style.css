@@ -61,7 +61,7 @@ h2 { font-size: 18px; color: #ffffff; margin-top: 15px; margin-bottom: 10px; tex
 
 .option-card {
     border: 2px solid #555; padding: 10px; cursor: pointer; text-align: center;
-    transition: all 0.2s ease; 
+    transition: all 0.3s ease; 
     width: 100px; 
     display: flex; flex-direction: column; align-items: center;
     background: #000;
@@ -83,6 +83,7 @@ button.main-btn {
     font-family: inherit; font-size: 20px; cursor: pointer;
     box-shadow: 4px 4px 0 #550000; border: 4px solid transparent; display: block; margin: 0;
 }
+button.main-btn:hover { background: #ff4444; transform: translate(-2px, -2px); box-shadow: 6px 6px 0 #550000; }
 button.main-btn:active { transform: translate(0, 0); box-shadow: 0 0 0; }
 button.main-btn.focused { background: #fff; color: #ff0000; border-color: #ff0000; animation: pulse 1s infinite; }
 .btn-secondary { background: #444; color: white; border: none; padding: 10px 20px; font-family: inherit; font-size: 14px; cursor: pointer; margin-top: 15px; box-shadow: 4px 4px 0 #222; display: block; }
@@ -105,12 +106,16 @@ button.main-btn.focused { background: #fff; color: #ff0000; border-color: #ff000
 }
 #mobile-controls.hidden { display: none !important; }
 
+/* D-Pad */
 #dpad-area { pointer-events: auto; width: 150px; height: 150px; position: relative; display: flex; justify-content: center; align-items: center; }
 #dpad-cross { width: 140px; height: 140px; position: relative; filter: drop-shadow(2px 4px 0 #222); }
 .dpad-key {
     position: absolute; background: #777; width: 46px; height: 46px;
     display: flex; justify-content: center; align-items: center;
-    color: #222; font-size: 20px; cursor: pointer; pointer-events: none;
+    color: #000; /* Tiefschwarz für die Pfeile */
+    font-size: 24px; /* Etwas größer */
+    font-weight: bold;
+    cursor: pointer; pointer-events: none;
     box-shadow: inset 1px 1px 2px rgba(255,255,255,0.3);
 }
 .dpad-up { top: 0; left: 47px; border-radius: 5px 5px 0 0; }
@@ -123,95 +128,87 @@ button.main-btn.focused { background: #fff; color: #ff0000; border-color: #ff000
 }
 .dpad-key.active { background: #555; color: #fff; box-shadow: inset 2px 2px 5px rgba(0,0,0,0.5); }
 
+/* Buttons */
 #action-area { pointer-events: auto; position: relative; width: 160px; height: 160px; }
 .control-btn {
     position: absolute; border-radius: 50%;
     display: flex; justify-content: center; align-items: center;
     user-select: none; backdrop-filter: blur(4px);
     box-shadow: 3px 5px 0 #220000; transition: transform 0.05s, box-shadow 0.05s;
+    background-repeat: no-repeat;
+    background-position: center;
 }
 .control-btn:active { transform: translate(3px, 5px); box-shadow: 0 0 0; }
+
 .main-action-btn {
-    width: 90px; height: 90px; font-size: 40px;
-    background: #cc0000; border: none; color: rgba(255,255,255,0.9);
+    width: 90px; height: 90px;
+    background-color: #cc0000; border: none;
     top: 10px; right: 0;
+    /* Pixel Art Bomb Icon (SVG Data URI) */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='48' height='48'%3E%3Cpath fill='%23ffffff' d='M12 2h2v2h-2zm4 4h-2v2h2zm-2 2h-2v2H8v8h8v-8h-2zM8 10H6v8h2z' shape-rendering='crispEdges'/%3E%3C/svg%3E");
+    background-size: 50px;
 }
+
 .subtle-btn {
-    width: 60px; height: 60px; font-size: 24px;
-    background: #555; border: none; color: #ccc;
+    width: 60px; height: 60px;
+    background-color: #555; border: none;
     bottom: 10px; left: 10px; box-shadow: 2px 4px 0 #111;
+    /* Pixel Art Swap Icon (SVG Data URI) */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='32' height='32'%3E%3Cpath fill='%23cccccc' d='M18 4l4 4-4 4V9H6v6H4V7h14zM6 20l-4-4 4-4v3h12v-6h2v8H6z' shape-rendering='crispEdges'/%3E%3C/svg%3E");
+    background-size: 30px;
 }
 
-@media (pointer: coarse) { #mobile-controls { display: flex; } }
+@media (pointer: coarse) {
+    #mobile-controls { display: flex; }
+}
 
-/* === MOBILE PORTRAIT LAYOUT (1x4 GRID FIX) === */
+/* === MOBILE PORTRAIT LAYOUT (GRID FIX) === */
 @media (orientation: portrait) {
     body { justify-content: flex-start; }
     #game-container { margin-top: 0 !important; transform-origin: top center !important; }
-    .screen { padding: 30px 0; box-sizing: border-box; }
+    .screen { padding: 40px 0; box-sizing: border-box; }
 
     .menu-content {
         display: flex; flex-direction: column; justify-content: flex-start;
         align-items: center; width: 100%; height: 100%;
-        padding-top: 10px; gap: 15px;
+        padding-top: 20px; gap: 20px;
     }
     .menu-section { width: 100%; display: flex; flex-direction: column; align-items: center; margin: 0; }
-    h1 { font-size: 32px; margin: 0 0 10px 0; flex-shrink: 0; }
-    h2 { font-size: 14px; margin: 0 0 5px 0; color: #aaa; text-transform: uppercase; letter-spacing: 2px; }
+    h1 { font-size: 32px; margin: 0; flex-shrink: 0; }
+    h2 { font-size: 12px; margin: 0 0 10px 0; color: #aaa; text-transform: uppercase; letter-spacing: 2px; }
 
     /* WICHTIG: 1x4 GRID Layout */
     .selection-grid { 
         display: grid !important; 
-        grid-template-columns: repeat(4, 1fr); /* 4 Spalten gleich verteilt */
+        grid-template-columns: repeat(4, 1fr); 
         gap: 5px;
-        width: 95%; /* Fast ganze Breite nutzen */
+        width: 95%; 
         margin: 0 auto; 
         padding: 0;
         border: none !important;
         background: transparent !important;
     }
 
-    /* Alle Karten anzeigen (überschreibt Desktop Defaults) */
     .option-card { 
         display: flex !important;
-        width: auto; /* Flexibel */
-        padding: 5px;
-        margin: 0;
-        /* Etwas verkleinern, damit 4 Stück passen */
-        transform: scale(0.9);
-        transform-origin: center top;
+        width: auto; padding: 5px; margin: 0;
+        transform: scale(0.9); transform-origin: center top;
     }
     
-    /* Nicht ausgewählte Karten etwas abdunkeln aber sichtbar lassen */
-    .option-card:not(.selected) {
-        opacity: 0.6;
-        filter: grayscale(80%);
-    }
+    .option-card:not(.selected) { opacity: 0.6; filter: grayscale(80%); }
 
-    /* Ausgewähltes Item hervorheben */
     .option-card.selected {
-        opacity: 1;
-        transform: scale(1.05); /* Leicht größer */
-        border-width: 2px;
-        z-index: 2;
-        filter: none;
+        opacity: 1; transform: scale(1.05); border-width: 2px; z-index: 2; filter: none;
     }
     
-    /* Aspect Ratio Fix für Mobile */
     .preview-canvas {
-        width: 100%; height: auto; 
-        max-width: 50px; /* Begrenzen */
+        width: 100%; height: auto; max-width: 50px; 
         object-fit: contain; margin-bottom: 5px;
     }
 
-    /* Labels im Grid anzeigen (kleiner) */
     .card-label { display: block !important; font-size: 8px; margin-top: 2px; }
-    
-    /* Mobile-only Elemente ausblenden */
-    .mobile-label { display: none !important; }
-    .nav-arrow { display: none !important; }
+    .mobile-label, .nav-arrow { display: none !important; }
 
-    /* Button */
     .menu-footer { width: 100%; margin-top: 15px; }
     button.main-btn { width: 80%; padding: 15px; font-size: 20px; }
     .desktop-only { display: none !important; }
