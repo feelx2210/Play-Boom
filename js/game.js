@@ -288,55 +288,102 @@ function gameLoop() {
     gameLoopId = requestAnimationFrame(gameLoop);
 }
 
-// --- MOBILE CONTROLS SETUP (Game Boy Style) ---
+// --- MOBILE CONTROLS SETUP (Smart D-Pad) ---
 (function setupMobileControls() {
-    // Helper Funktion um D-Pad Buttons zu binden
-    const bindDPadButton = (elementId, keyName) => {
-        const btn = document.getElementById(elementId);
-        if (!btn) return;
-
-        const press = (e) => {
-            if (e.cancelable) e.preventDefault(); // Verhindert Scrollen
-            state.keys[keyBindings[keyName]] = true;
-            btn.classList.add('pressed'); // Für CSS Feedback
-        };
-
-        const release = (e) => {
-            if (e.cancelable) e.preventDefault();
-            state.keys[keyBindings[keyName]] = false;
-            btn.classList.remove('pressed');
-        };
-
-        btn.addEventListener('touchstart', press, {passive: false});
-        btn.addEventListener('mousedown', press); // Für Desktop-Tests
-        
-        btn.addEventListener('touchend', release, {passive: false});
-        btn.addEventListener('touchcancel', release, {passive: false});
-        btn.addEventListener('mouseup', release);
-        btn.addEventListener('mouseleave', release);
-    };
-
-    // D-Pad binden
-    bindDPadButton('dpad-up', 'UP');
-    bindDPadButton('dpad-down', 'DOWN');
-    bindDPadButton('dpad-left', 'LEFT');
-    bindDPadButton('dpad-right', 'RIGHT');
-
-
-    // --- Action Buttons (Rechts) ---
+    const dpadArea = document.getElementById('dpad-area');
     const btnBomb = document.getElementById('btn-bomb');
     const btnChange = document.getElementById('btn-change');
+    
+    // UI Elemente für visuelles Feedback
+    const armUp = document.querySelector('.dpad-up');
+    const armDown = document.querySelector('.dpad-down');
+    const armLeft = document.querySelector('.dpad-left');
+    const armRight = document.querySelector('.dpad-right');
 
-    // Bombe legen
+    const resetKeys = () => {
+        state.keys[keyBindings.UP] = false;
+        state.keys[keyBindings.DOWN] = false;
+        state.keys[keyBindings.LEFT] = false;
+        state.keys[keyBindings.RIGHT] = false;
+        
+        // Visual Reset
+        [armUp, armDown, armLeft, armRight].forEach(el => el && el.classList.remove('active'));
+    };
+
+    const handleDPadInput = (e) => {
+        e.preventDefault(); // Verhindert Scrollen
+        // Nur den ersten Touch beachten
+        const touch = e.touches[0]; 
+        if (!touch) return;
+
+        // Bounding Box des D-Pads holen
+        const rect = dpadArea.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
+
+        // Vektor vom Zentrum
+        const dx = touch.clientX - centerX;
+        const dy = touch.clientY - centerY;
+        
+        // Winkel berechnen (in Grad)
+        // Math.atan2(y, x) gibt Radiant zurück. * 180 / PI -> Grad
+        const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+        // Distanz (optional für Deadzone)
+        const dist = Math.sqrt(dx*dx + dy*dy);
+
+        resetKeys();
+
+        // Deadzone: Wenn man genau die Mitte berührt, passiert nichts
+        if (dist < 15) return; 
+
+        // Sektoren bestimmen (45 Grad gedreht für X-Form der Trennlinien)
+        // Oben: -135 bis -45
+        // Rechts: -45 bis 45
+        // Unten: 45 bis 135
+        // Links: 135 bis 180 ODER -180 bis -135
+        
+        if (angle > -135 && angle < -45) {
+            state.keys[keyBindings.UP] = true;
+            if(armUp) armUp.classList.add('active');
+        } else if (angle >= -45 && angle <= 45) {
+            state.keys[keyBindings.RIGHT] = true;
+            if(armRight) armRight.classList.add('active');
+        } else if (angle > 45 && angle < 135) {
+            state.keys[keyBindings.DOWN] = true;
+            if(armDown) armDown.classList.add('active');
+        } else {
+            state.keys[keyBindings.LEFT] = true;
+            if(armLeft) armLeft.classList.add('active');
+        }
+    };
+
+    // Event Listener für D-Pad (Touch & Mouse für Debugging)
+    dpadArea.addEventListener('touchstart', handleDPadInput, {passive: false});
+    dpadArea.addEventListener('touchmove', handleDPadInput, {passive: false});
+    
+    // Reset beim Loslassen
+    dpadArea.addEventListener('touchend', (e) => { e.preventDefault(); resetKeys(); });
+    dpadArea.addEventListener('touchcancel', (e) => { e.preventDefault(); resetKeys(); });
+
+    // --- Action Buttons ---
     btnBomb.addEventListener('touchstart', e => {
         e.preventDefault();
         if (state.players[0] && state.players[0].alive) state.players[0].plantBomb();
+        btnBomb.style.transform = "scale(0.9)";
+    });
+    btnBomb.addEventListener('touchend', e => {
+        e.preventDefault();
+        btnBomb.style.transform = "scale(1)";
     });
 
-    // Typ wechseln
     btnChange.addEventListener('touchstart', e => {
         e.preventDefault();
         if (state.players[0] && state.players[0].alive) state.players[0].cycleBombType();
+        btnChange.style.transform = "scale(0.9)";
+    });
+    btnChange.addEventListener('touchend', e => {
+        e.preventDefault();
+        btnChange.style.transform = "scale(1)";
     });
 
 })();

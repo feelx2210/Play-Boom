@@ -11,7 +11,7 @@ body {
     justify-content: center;
     width: 100vw;
     height: 100vh;
-    height: 100dvh;
+    height: 100dvh; /* Wichtig für Mobile Browser */
     margin: 0;
     overflow: hidden;
     touch-action: none;
@@ -75,7 +75,7 @@ h2 { font-size: 18px; color: #ffffff; margin-top: 15px; margin-bottom: 10px; tex
 .option-card {
     border: 2px solid #555; padding: 10px; cursor: pointer; text-align: center;
     transition: all 0.3s ease; 
-    width: 100px; /* Feste Breite für Desktop */
+    width: 100px; 
     display: flex; flex-direction: column; align-items: center;
     background: #000;
     z-index: 1;
@@ -132,15 +132,106 @@ button.main-btn.focused {
 .control-row { display: flex; justify-content: space-between; color: #ddd; }
 .key-btn { background: #333; border: 2px solid #555; color: #fff; padding: 8px 16px; width: 180px; text-align: center; }
 
-/* Mobile Controls Default */
-#mobile-controls { display: none; position: fixed; z-index: 1000; pointer-events: none; left: 0; right: 0; bottom: 20px; height: 150px; padding: 0 40px; justify-content: space-between; align-items: center; }
-#joystick-area { pointer-events: auto; width: 140px; height: 140px; position: relative; }
-#joystick-base { width: 100px; height: 100px; background: rgba(255, 255, 255, 0.1); border: 2px solid rgba(255, 255, 255, 0.3); border-radius: 50%; position: absolute; top: 20px; left: 20px; }
-#joystick-stick { width: 50px; height: 50px; background: rgba(255, 0, 0, 0.5); border-radius: 50%; position: absolute; top: 25px; left: 25px; box-shadow: 0 0 10px rgba(255,0,0,0.5); transition: transform 0.1s; }
-#action-area { pointer-events: auto; display: flex; gap: 15px; align-items: flex-end; padding-bottom: 10px; }
-.control-btn { background: rgba(255, 0, 0, 0.2); border: 2px solid rgba(255, 0, 0, 0.5); border-radius: 50%; color: white; display: flex; justify-content: center; align-items: center; font-size: 24px; backdrop-filter: blur(4px); }
-#btn-bomb { width: 100px; height: 100px; font-size: 40px; background: rgba(200, 0, 0, 0.3); }
-#btn-change { width: 60px; height: 60px; margin-bottom: 10px; background: rgba(0, 100, 255, 0.3); }
+/* --- MOBILE CONTROLS (GAME BOY STYLE) --- */
+#mobile-controls {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    pointer-events: none;
+    left: 0; right: 0; bottom: 10px;
+    height: 180px;
+    padding: 0 20px;
+    justify-content: space-between;
+    align-items: flex-end;
+}
+
+/* LINKES D-PAD (Kreuz) */
+#dpad-area {
+    pointer-events: auto;
+    width: 160px;
+    height: 160px;
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#dpad-cross {
+    width: 140px; height: 140px; position: relative;
+}
+
+.dpad-arm {
+    position: absolute;
+    background: #444; /* Dunkelgrau */
+    width: 46px; height: 46px;
+    display: flex; justify-content: center; align-items: center;
+    color: #222; font-size: 18px;
+    border-radius: 4px;
+    box-shadow: 2px 2px 5px rgba(0,0,0,0.5), inset 1px 1px 2px rgba(255,255,255,0.2);
+    cursor: pointer; pointer-events: none; /* Events gehen zum Container */
+}
+
+/* Positionierung */
+.dpad-up    { top: 0; left: 47px; border-radius: 5px 5px 0 0; }
+.dpad-down  { bottom: 0; left: 47px; border-radius: 0 0 5px 5px; box-shadow: 2px 4px 5px rgba(0,0,0,0.5); }
+.dpad-left  { left: 0; top: 47px; border-radius: 5px 0 0 5px; }
+.dpad-right { right: 0; top: 47px; border-radius: 0 5px 5px 0; box-shadow: 4px 2px 5px rgba(0,0,0,0.5); }
+
+/* Feedback Klasse */
+.dpad-arm.active {
+    background: #666;
+    box-shadow: inset 2px 2px 5px rgba(0,0,0,0.8);
+    color: #fff;
+}
+
+.dpad-center {
+    position: absolute; width: 46px; height: 46px; top: 47px; left: 47px;
+    background: #444; background-image: radial-gradient(circle, #333 20%, transparent 25%);
+    z-index: 2;
+}
+
+/* RECHTE ACTION BUTTONS */
+#action-area {
+    pointer-events: auto;
+    position: relative;
+    width: 160px;
+    height: 160px;
+}
+
+.control-btn {
+    position: absolute;
+    border-radius: 50%;
+    display: flex; justify-content: center; align-items: center;
+    user-select: none; backdrop-filter: blur(4px);
+    box-shadow: 3px 5px 0 #220000;
+    transition: transform 0.05s, box-shadow 0.05s;
+}
+
+.control-btn:active {
+    transform: translate(3px, 5px);
+    box-shadow: 0 0 0;
+}
+
+/* Großer roter Button (Bombe) */
+.main-action-btn {
+    width: 90px; height: 90px;
+    font-size: 40px;
+    background: #cc0000;
+    border: none;
+    color: rgba(255,255,255,0.9);
+    top: 10px; right: 0;
+}
+
+/* Kleiner grauer Button (Wechseln) */
+.subtle-btn {
+    width: 60px; height: 60px;
+    font-size: 24px;
+    background: #555;
+    border: none;
+    color: #ccc;
+    bottom: 10px; left: 10px;
+    box-shadow: 2px 4px 0 #111;
+}
 
 /* --- OVERRIDES --- */
 @media (pointer: coarse) {
@@ -148,16 +239,22 @@ button.main-btn.focused {
     #mobile-controls.hidden { display: none !important; }
 }
 
-/* === MOBILE PORTRAIT LAYOUT (SIMPLE STACK & FIX ASPECT RATIO) === */
+/* === MOBILE PORTRAIT LAYOUT === */
 @media (orientation: portrait) {
     body { justify-content: flex-start; }
-    #game-container { margin-top: 0 !important; transform-origin: top center !important; }
+    
+    #game-container {
+        margin-top: 0 !important;
+        transform-origin: top center !important;
+    }
+
     .screen { padding: 40px 0; box-sizing: border-box; }
 
+    /* WICHTIG: Flex Start verhindert Überlappung */
     .menu-content {
         display: flex;
         flex-direction: column;
-        justify-content: flex-start; /* Oben anfangen */
+        justify-content: flex-start;
         align-items: center;
         width: 100%;
         height: 100%;
@@ -169,7 +266,13 @@ button.main-btn.focused {
     h1 { font-size: 32px; margin: 0; flex-shrink: 0; }
     h2 { font-size: 12px; margin: 0 0 10px 0; color: #aaa; text-transform: uppercase; letter-spacing: 2px; }
 
-    /* Container für Pfeil - Item - Pfeil */
+    /* Rahmen entfernen im Mobile Mode */
+    .selection-grid.active-group, .selection-grid.inactive-group {
+        border: none !important;
+        background: transparent !important;
+    }
+
+    /* Container für Auswahl */
     .selection-grid { 
         position: relative; 
         display: flex; 
@@ -180,34 +283,31 @@ button.main-btn.focused {
         height: auto; 
         margin: 0; 
         padding: 0;
-        border: none !important; 
     }
 
-    /* WICHTIG: Nicht-ausgewählte Items komplett entfernen! */
+    /* Nicht-ausgewählte Items komplett entfernen! */
     .option-card.hidden-option { display: none !important; }
 
-    /* WICHTIG: Das ausgewählte Item (Seitenverhältnis Fix) */
+    /* WICHTIG: Seitenverhältnis Fix & Skalierung */
     .option-card.selected {
-        transform: scale(1.1); /* Leicht vergrößert */
+        transform: scale(1.1);
         margin: 0;
         border-width: 3px;
         z-index: 10;
         position: relative; 
         left: auto; top: auto;
-        /* FIX: Damit sich die Box dem Canvas anpasst und nicht umgekehrt */
+        /* Box passt sich Inhalt an */
         width: auto; 
         height: auto;
-        flex: 0 0 auto; /* Verhindert Stauchen */
+        flex: 0 0 auto;
     }
 
-    /* WICHTIG: Das Canvas selbst */
+    /* Canvas Seitenverhältnis bewahren */
     .preview-canvas {
-        width: auto; /* Native Breite nutzen */
-        height: auto; /* Native Höhe nutzen */
-        max-width: 100%; /* Aber nicht breiter als der Container */
-        max-height: 200px; /* Und nicht zu hoch werden */
-        object-fit: contain; /* Bewahrt Seitenverhältnis! */
-        margin-bottom: 0; /* Kein Abstand nach unten */
+        width: auto; height: auto;
+        max-width: 100%; max-height: 200px;
+        object-fit: contain;
+        margin-bottom: 0;
     }
 
     .nav-arrow { 
@@ -225,6 +325,7 @@ button.main-btn.focused {
     button.main-btn { width: 70%; padding: 15px; font-size: 18px; }
     .desktop-only { display: none !important; }
     
+    /* Controls Platzierung */
     #mobile-controls { bottom: 20px; padding: 0 10px; height: 180px; }
 }
 @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
