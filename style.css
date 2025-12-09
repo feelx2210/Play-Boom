@@ -132,84 +132,15 @@ button.main-btn.focused {
 .control-row { display: flex; justify-content: space-between; color: #ddd; }
 .key-btn { background: #333; border: 2px solid #555; color: #fff; padding: 8px 16px; width: 180px; text-align: center; }
 
-/* --- MOBILE CONTROLS (Game Boy Style) --- */
-#mobile-controls {
-    display: none;
-    position: fixed;
-    z-index: 1000;
-    pointer-events: none;
-    left: 0; right: 0; bottom: 10px;
-    height: 180px;
-    padding: 0 20px;
-    justify-content: space-between;
-    align-items: flex-end;
-}
-
-/* LINKES D-PAD */
-#dpad-area {
-    pointer-events: auto;
-    width: 150px;
-    height: 150px;
-    position: relative;
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    grid-template-rows: 1fr 1fr 1fr;
-    background: linear-gradient(to bottom, transparent 33%, #333 33%, #333 66%, transparent 66%),
-                linear-gradient(to right, transparent 33%, #333 33%, #333 66%, transparent 66%);
-    border-radius: 10px;
-    opacity: 0.8;
-}
-
-.dpad-btn {
-    background: transparent; border: none; color: #888; font-size: 24px;
-    display: flex; justify-content: center; align-items: center; cursor: pointer;
-    user-select: none; touch-action: none; outline: none; -webkit-tap-highlight-color: transparent;
-}
-
-#dpad-up { grid-column: 2; grid-row: 1; }
-#dpad-left { grid-column: 1; grid-row: 2; }
-#dpad-right { grid-column: 3; grid-row: 2; }
-#dpad-down { grid-column: 2; grid-row: 3; }
-.dpad-center { grid-column: 2; grid-row: 2; background: #333;}
-
-.dpad-btn:active, .dpad-btn.pressed { background: rgba(255, 255, 255, 0.2); color: #fff; }
-
-/* RECHTE ACTIONS */
-#action-area {
-    pointer-events: auto;
-    position: relative;
-    width: 160px;
-    height: 160px;
-}
-
-.control-btn {
-    position: absolute;
-    border-radius: 50%;
-    display: flex; justify-content: center; align-items: center;
-    user-select: none; backdrop-filter: blur(4px);
-    box-shadow: 2px 4px 0 #000;
-    transition: transform 0.1s, box-shadow 0.1s;
-}
-
-.control-btn:active { transform: translate(2px, 4px); box-shadow: 0 0 0 #000; }
-
-.main-action-btn {
-    width: 90px; height: 90px;
-    font-size: 40px;
-    background: #cc0000;
-    border: 3px solid #ff3333;
-    color: white;
-    top: 0; right: 0;
-}
-
-.subtle-btn {
-    width: 60px; height: 60px;
-    font-size: 24px;
-    background: #666;
-    border: 3px solid #888;
-    color: #eee;
-    bottom: 10px; left: 10px;
-}
+/* Mobile Controls Default */
+#mobile-controls { display: none; position: fixed; z-index: 1000; pointer-events: none; left: 0; right: 0; bottom: 20px; height: 150px; padding: 0 40px; justify-content: space-between; align-items: center; }
+#joystick-area { pointer-events: auto; width: 140px; height: 140px; position: relative; }
+#joystick-base { width: 100px; height: 100px; background: rgba(255, 255, 255, 0.1); border: 2px solid rgba(255, 255, 255, 0.3); border-radius: 50%; position: absolute; top: 20px; left: 20px; }
+#joystick-stick { width: 50px; height: 50px; background: rgba(255, 0, 0, 0.5); border-radius: 50%; position: absolute; top: 25px; left: 25px; box-shadow: 0 0 10px rgba(255,0,0,0.5); transition: transform 0.1s; }
+#action-area { pointer-events: auto; display: flex; gap: 15px; align-items: flex-end; padding-bottom: 10px; }
+.control-btn { background: rgba(255, 0, 0, 0.2); border: 2px solid rgba(255, 0, 0, 0.5); border-radius: 50%; color: white; display: flex; justify-content: center; align-items: center; font-size: 24px; backdrop-filter: blur(4px); }
+#btn-bomb { width: 100px; height: 100px; font-size: 40px; background: rgba(200, 0, 0, 0.3); }
+#btn-change { width: 60px; height: 60px; margin-bottom: 10px; background: rgba(0, 100, 255, 0.3); }
 
 /* --- OVERRIDES --- */
 @media (pointer: coarse) {
@@ -217,62 +148,83 @@ button.main-btn.focused {
     #mobile-controls.hidden { display: none !important; }
 }
 
-/* === MOBILE PORTRAIT LAYOUT (SAFARI FIX & KOMPAKT) === */
+/* === MOBILE PORTRAIT LAYOUT (SIMPLE STACK) === */
 @media (orientation: portrait) {
     body { justify-content: flex-start; }
     #game-container { margin-top: 0 !important; transform-origin: top center !important; }
-    .screen { padding: 20px 0; box-sizing: border-box; }
+    .screen { padding: 40px 0; box-sizing: border-box; }
 
-    /* WIEDERHERGESTELLT: Kompaktes Layout ohne space-evenly */
+    /* WICHTIG: Das Flex-Layout verteilt die Sektionen untereinander */
     .menu-content {
         display: flex;
         flex-direction: column;
-        justify-content: flex-start; /* Nach oben drücken */
+        justify-content: flex-start; /* Oben anfangen */
         align-items: center;
         width: 100%;
         height: 100%;
-        padding-top: 30px; 
-        gap: 15px; /* Konstanter Abstand */
+        padding-top: 20px; 
+        gap: 20px; /* Abstand zwischen BOOM, Player, Level, Button */
     }
 
-    .menu-section { width: 100%; display: flex; flex-direction: column; align-items: center; margin: 0; }
-    h1 { font-size: 32px; margin: 0 0 10px 0; flex-shrink: 0; }
-    h2 { font-size: 12px; margin: 0 0 5px 0; color: #aaa; text-transform: uppercase; letter-spacing: 2px; }
-
-    /* Rahmen entfernen im Mobile Mode */
-    .selection-grid.active-group, .selection-grid.inactive-group {
-        border: none !important;
-        background: transparent !important;
+    .menu-section { 
+        width: 100%; 
+        display: flex; 
+        flex-direction: column; 
+        align-items: center; 
+        margin: 0;
+        /* Kein relatives Positioning nötig, da wir im Flow bleiben */
     }
 
-    /* KLEINER CONTAINER für Karten */
+    h1 { font-size: 32px; margin: 0; flex-shrink: 0; }
+    h2 { font-size: 12px; margin: 0 0 10px 0; color: #aaa; text-transform: uppercase; letter-spacing: 2px; }
+
+    /* WICHTIG: Container für Pfeil - Item - Pfeil */
     .selection-grid { 
         position: relative; 
-        display: block; 
-        height: 85px; /* Kompakt */
-        width: 100%; 
+        display: flex; /* Flexbox! Damit Pfeile neben dem Item stehen */
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        width: 80%; /* Nicht ganz voll */
+        height: auto; /* Automatische Höhe */
         margin: 0; 
+        padding: 0;
+        border: none !important; /* Rahmen weg */
     }
 
-    .option-card { 
-        position: absolute; top: 0; left: 50%; 
-        transform: translateX(-50%) scale(0.5); 
-        opacity: 0; pointer-events: none; margin: 0; 
+    /* WICHTIG: Nicht-ausgewählte Items komplett entfernen! */
+    .option-card.hidden-option {
+        display: none !important;
     }
 
-    /* CAROUSEL - KLEINER SKALIERT */
-    .option-card[data-pos="center"] { opacity: 1; z-index: 10; transform: translateX(-50%) scale(0.8); border-color: #ff0000; box-shadow: 0 0 10px #ff0000; pointer-events: auto; }
-    .option-card[data-pos="left"] { opacity: 0.3; z-index: 5; transform: translateX(-155%) scale(0.5); filter: grayscale(100%); pointer-events: auto; }
-    .option-card[data-pos="right"] { opacity: 0.3; z-index: 5; transform: translateX(55%) scale(0.5); filter: grayscale(100%); pointer-events: auto; }
+    /* Das ausgewählte Item */
+    .option-card.selected {
+        transform: scale(1.2); /* Leicht vergrößert */
+        margin: 0;
+        border-width: 3px;
+        z-index: 10;
+        /* WICHTIG: Relativ positioniert, damit es Platz einnimmt */
+        position: relative; 
+        left: auto; top: auto;
+    }
 
-    .mobile-label { display: block; color: #ff0000; font-size: 14px; font-weight: bold; text-transform: uppercase; margin-top: 2px; text-shadow: 1px 1px 0 #000; z-index: 20; position: relative; }
+    /* Pfeile sichtbar machen */
+    .nav-arrow { 
+        display: block; 
+        font-size: 30px; color: #ff0000; cursor: pointer; 
+        padding: 10px;
+        user-select: none; animation: pulse 1s infinite;
+        position: static; /* Im Fluss bleiben */
+    }
+
+    /* Namen unter dem Item */
+    .mobile-label { display: block; color: #ff0000; font-size: 14px; font-weight: bold; text-transform: uppercase; margin-top: 10px; text-shadow: 1px 1px 0 #000; }
     .card-label { display: none !important; }
-    .nav-arrow { display: none !important; }
 
-    .menu-footer { width: 100%; margin-top: 10px; }
+    .menu-footer { width: 100%; margin-top: 20px; }
     button.main-btn { width: 70%; padding: 15px; font-size: 18px; }
     .desktop-only { display: none !important; }
     
-    #mobile-controls { bottom: 10px; padding: 0 10px; height: 180px; }
+    #mobile-controls { bottom: 20px; padding: 0 10px; height: 180px; }
 }
 @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
