@@ -11,7 +11,7 @@ body {
     justify-content: center;
     width: 100vw;
     height: 100vh;
-    height: 100dvh; /* Wichtig für Mobile Browser */
+    height: 100dvh;
     margin: 0;
     overflow: hidden;
     touch-action: none;
@@ -39,14 +39,13 @@ canvas { display: block; background: #110000; image-rendering: pixelated; width:
 }
 
 .menu-content {
-    /* Desktop: Standard Block Layout */
     width: 100%; display: flex; flex-direction: column; align-items: center;
 }
 
 h1 { font-size: 40px; color: #ff0000; text-shadow: 4px 4px 0 #550000; margin-bottom: 20px; text-align: center; width: 100%; }
 h2 { font-size: 18px; color: #ffffff; margin-top: 15px; margin-bottom: 10px; text-align: center; width: 100%; }
 
-/* Desktop: Einfache Reihe nebeneinander */
+/* Desktop Container */
 .selection-grid {
     display: flex;
     flex-direction: row;
@@ -55,6 +54,21 @@ h2 { font-size: 18px; color: #ffffff; margin-top: 15px; margin-bottom: 10px; tex
     margin-bottom: 20px;
     padding: 10px;
     width: 100%;
+    transition: 0.2s;
+    /* Platzhalter Border, damit es nicht springt */
+    border: 2px solid transparent;
+}
+
+/* FIX: DESKTOP ACTIVE STATES */
+.selection-grid.active-group {
+    border: 2px dashed #ffffff;
+    background: rgba(50, 50, 0, 0.3);
+    opacity: 1;
+}
+
+.selection-grid.inactive-group {
+    border: 2px solid transparent;
+    opacity: 0.5;
 }
 
 .option-card {
@@ -72,18 +86,13 @@ h2 { font-size: 18px; color: #ffffff; margin-top: 15px; margin-bottom: 10px; tex
 .preview-canvas { margin-bottom: 5px; border: 2px solid #333; background: #000; }
 .card-label { font-size: 10px; color: #ddd; margin-top: 5px; text-transform: uppercase; }
 
-/* Mobile Elemente im Desktop verstecken */
 .nav-arrow { display: none; }
 .mobile-label { display: none; }
 
 /* Footer / Buttons Desktop */
 .menu-footer {
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    margin-top: 20px;
+    width: 100%; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; margin-top: 20px;
 }
 
 button.main-btn {
@@ -94,6 +103,11 @@ button.main-btn {
 }
 button.main-btn:hover { background: #ff4444; transform: translate(-2px, -2px); box-shadow: 6px 6px 0 #550000; }
 button.main-btn:active { transform: translate(0, 0); box-shadow: 0 0 0; }
+
+/* Focus State für Keyboard Navigation */
+button.main-btn.focused {
+    background: #fff; color: #ff0000; border-color: #ff0000; animation: pulse 1s infinite;
+}
 
 .btn-secondary {
     background: #444; color: white; border: none; padding: 10px 20px;
@@ -123,126 +137,47 @@ button.main-btn:active { transform: translate(0, 0); box-shadow: 0 0 0; }
 #btn-bomb { width: 100px; height: 100px; font-size: 40px; background: rgba(200, 0, 0, 0.3); }
 #btn-change { width: 60px; height: 60px; margin-bottom: 10px; background: rgba(0, 100, 255, 0.3); }
 
-/* --- OVERRIDES --- */
 @media (pointer: coarse) {
     #mobile-controls { display: flex; }
     #mobile-controls.hidden { display: none !important; }
 }
 
-/* === MOBILE PORTRAIT LAYOUT (KOMPAKT & FIX) === */
+/* === MOBILE PORTRAIT LAYOUT === */
 @media (orientation: portrait) {
-    body {
-        justify-content: flex-start;
-    }
+    body { justify-content: flex-start; }
+    #game-container { margin-top: 0 !important; transform-origin: top center !important; }
+    .screen { padding: 40px 0; box-sizing: border-box; }
 
-    #game-container {
-        margin-top: 0 !important;
-        transform-origin: top center !important;
-    }
-
-    .screen {
-        padding: 20px 0; /* Weniger Padding für mehr Platz */
-        box-sizing: border-box;
-    }
-
-    /* Manuelle Verteilung statt space-evenly (sicherer) */
     .menu-content {
-        display: flex;
-        flex-direction: column;
-        justify-content: flex-start; /* Alles nach oben */
-        align-items: center;
-        width: 100%;
-        height: 100%;
-        padding-top: 30px; /* Sicherer Abstand */
-        gap: 15px; /* Konstanter Abstand zwischen Elementen */
+        display: flex; flex-direction: column; justify-content: space-evenly; 
+        align-items: center; width: 100%; height: 100%; max-height: 90vh;
     }
 
-    .menu-section {
-        width: 100%;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        margin: 0;
+    .menu-section { width: 100%; display: flex; flex-direction: column; align-items: center; margin: 0; }
+    h1 { font-size: 40px; margin: 0; flex-shrink: 0; }
+    h2 { font-size: 14px; margin-bottom: 10px; color: #aaa; margin-top: 0; text-transform: uppercase; letter-spacing: 2px; }
+
+    /* WICHTIG: Im Mobile Mode entfernen wir die Boxen um die Gruppen! */
+    .selection-grid.active-group, .selection-grid.inactive-group {
+        border: none !important;
+        background: transparent !important;
     }
 
-    /* Kleinere Schriftarten */
-    h1 { font-size: 32px; margin: 0 0 10px 0; flex-shrink: 0; }
-    h2 { font-size: 12px; margin: 0 0 5px 0; color: #aaa; text-transform: uppercase; letter-spacing: 2px; }
+    .selection-grid { position: relative; display: block; height: 110px; width: 100%; margin: 0; }
+    .option-card { position: absolute; top: 0; left: 50%; transform: translateX(-50%) scale(0.6); opacity: 0; pointer-events: none; margin: 0; }
 
-    /* KLEINERER CONTAINER */
-    .selection-grid {
-        position: relative;
-        display: block; 
-        height: 85px; /* Reduziert für 0.8 Scale */
-        width: 100%;
-        margin: 0;
-    }
+    .option-card[data-pos="center"] { opacity: 1; z-index: 10; transform: translateX(-50%) scale(1.0); border-color: #ff0000; box-shadow: 0 0 15px #ff0000; pointer-events: auto; }
+    .option-card[data-pos="left"] { opacity: 0.3; z-index: 5; transform: translateX(-155%) scale(0.6); filter: grayscale(100%); pointer-events: auto; }
+    .option-card[data-pos="right"] { opacity: 0.3; z-index: 5; transform: translateX(55%) scale(0.6); filter: grayscale(100%); pointer-events: auto; }
 
-    .option-card {
-        position: absolute;
-        top: 0;
-        left: 50%;
-        transform: translateX(-50%) scale(0.5);
-        opacity: 0;
-        pointer-events: none;
-        margin: 0;
-    }
-
-    /* --- SKALIERUNG REDUZIERT (20% kleiner) --- */
-    
-    /* Center (Active): Scale 0.8 statt 1.0 */
-    .option-card[data-pos="center"] {
-        opacity: 1; z-index: 10;
-        transform: translateX(-50%) scale(0.8); 
-        border-color: #ff0000; box-shadow: 0 0 10px #ff0000;
-        pointer-events: auto;
-    }
-
-    /* Left: Scale 0.5 statt 0.6 */
-    .option-card[data-pos="left"] {
-        opacity: 0.3; z-index: 5;
-        transform: translateX(-155%) scale(0.5); 
-        filter: grayscale(100%);
-        pointer-events: auto;
-    }
-
-    /* Right: Scale 0.5 statt 0.6 */
-    .option-card[data-pos="right"] {
-        opacity: 0.3; z-index: 5;
-        transform: translateX(55%) scale(0.5); 
-        filter: grayscale(100%);
-        pointer-events: auto;
-    }
-
-    /* Namen SICHTBAR MACHEN */
-    .mobile-label {
-        display: block;
-        color: #ff0000; font-size: 14px; font-weight: bold;
-        text-transform: uppercase; 
-        margin-top: 2px;
-        text-shadow: 1px 1px 0 #000;
-        position: relative; 
-        z-index: 20; /* Über alles legen */
-    }
-
+    .mobile-label { display: block; color: #ff0000; font-size: 16px; font-weight: bold; text-transform: uppercase; margin-top: 5px; text-shadow: 2px 2px 0 #000; z-index: 20; position: relative; }
     .card-label { display: none !important; }
     .nav-arrow { display: none !important; }
 
-    /* Footer kompakt */
-    .menu-footer {
-        width: 100%;
-        margin-top: 10px;
-    }
-
-    button.main-btn {
-        width: 70%;
-        padding: 15px; 
-        font-size: 18px;
-    }
-
+    .menu-footer { width: 100%; margin-top: 0; }
+    button.main-btn { width: 80%; padding: 20px; font-size: 20px; }
     .desktop-only { display: none !important; }
     
-    #mobile-controls {
-        bottom: 30px; padding: 0 20px; align-items: flex-end;
-    }
+    #mobile-controls { bottom: 30px; padding: 0 20px; align-items: flex-end; }
 }
+@keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }

@@ -52,7 +52,7 @@ export function initMenu() {
     updateMobileLabels();
 
     // --- FIX: VISUAL FEEDBACK FÜR DESKTOP NAVIGATION ---
-    // Hier steuern wir, welcher Bereich "aktiv" (umrandet/hell) ist
+    // Hier steuern wir wieder, welcher Bereich "aktiv" ist
     if (state.menuState === 0) { // Player Select aktiv
         charContainer.classList.add('active-group'); charContainer.classList.remove('inactive-group');
         levelContainer.classList.add('inactive-group'); levelContainer.classList.remove('active-group');
@@ -84,13 +84,13 @@ export function initMenu() {
 
         div.onclick = (e) => {
             e.stopPropagation();
-            // Wenn man auf eine Karte klickt, wird diese Reihe aktiv
+            // Desktop: Klick aktiviert die Gruppe
             if (type === 'char') state.menuState = 0;
             if (type === 'level') state.menuState = 1;
             
             if (pos === 'left') changeSelection(type, -1);
             else if (pos === 'right') changeSelection(type, 1);
-            else initMenu(); // Update Styles
+            else initMenu(); 
         };
 
         const pCanvas = document.createElement('canvas'); 
@@ -126,32 +126,6 @@ export function initMenu() {
 
     addSwipeSupport(charContainer, 'char');
     addSwipeSupport(levelContainer, 'level');
-    
-    addArrows(charContainer, 'char');
-    addArrows(levelContainer, 'level');
-}
-
-function addArrows(container, type) {
-    const left = document.createElement('div');
-    left.className = 'nav-arrow left';
-    left.innerText = '◀';
-    left.onclick = (e) => { 
-        e.stopPropagation(); 
-        state.menuState = (type === 'char') ? 0 : 1; // Aktivieren bei Klick
-        changeSelection(type, -1); 
-    };
-    
-    const right = document.createElement('div');
-    right.className = 'nav-arrow right';
-    right.innerText = '▶';
-    right.onclick = (e) => { 
-        e.stopPropagation(); 
-        state.menuState = (type === 'char') ? 0 : 1; // Aktivieren bei Klick
-        changeSelection(type, 1); 
-    };
-    
-    container.appendChild(left);
-    container.appendChild(right);
 }
 
 function addSwipeSupport(element, type) {
@@ -166,22 +140,17 @@ function addSwipeSupport(element, type) {
 }
 
 export function handleMenuInput(code) {
-    const levelKeys = Object.keys(LEVELS);
-    // STATE 0: CHAR SELECT
+    // DESKTOP NAVIGATION
     if (state.menuState === 0) {
         if (code === 'ArrowLeft') changeSelection('char', -1);
         else if (code === 'ArrowRight') changeSelection('char', 1);
         else if (code === 'Enter' || code === 'Space' || code === 'ArrowDown') { state.menuState = 1; initMenu(); }
-    } 
-    // STATE 1: LEVEL SELECT
-    else if (state.menuState === 1) {
+    } else if (state.menuState === 1) {
         if (code === 'ArrowLeft') changeSelection('level', -1);
         else if (code === 'ArrowRight') changeSelection('level', 1);
         else if (code === 'Enter' || code === 'Space' || code === 'ArrowDown') { state.menuState = 2; initMenu(); }
         else if (code === 'ArrowUp' || code === 'Escape') { state.menuState = 0; initMenu(); }
-    } 
-    // STATE 2: START BUTTON
-    else if (state.menuState === 2) {
+    } else if (state.menuState === 2) {
         if (code === 'Enter' || code === 'Space') { if (window.startGame) window.startGame(); }
         else if (code === 'ArrowUp' || code === 'Escape') { state.menuState = 1; initMenu(); }
     }
