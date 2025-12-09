@@ -34,7 +34,7 @@ window.startGame = function() {
     document.getElementById('ui-layer').classList.remove('hidden');
     document.getElementById('pause-btn').classList.remove('hidden'); 
     
-    // FIX: Controls sichtbar machen
+    // Show Controls
     document.getElementById('mobile-controls').classList.remove('hidden');
 
     resizeGame(); 
@@ -166,13 +166,13 @@ function gameLoop() {
     gameLoopId = requestAnimationFrame(gameLoop);
 }
 
-// --- NEW MOBILE CONTROLS (GAME BOY D-PAD) ---
+// --- SMART D-PAD LOGIC ---
 (function setupMobileControls() {
     const dpadArea = document.getElementById('dpad-area');
     const btnBomb = document.getElementById('btn-bomb');
     const btnChange = document.getElementById('btn-change');
     
-    // Elements for visual feedback
+    // UI Elements for Feedback
     const armUp = document.querySelector('.dpad-up');
     const armDown = document.querySelector('.dpad-down');
     const armLeft = document.querySelector('.dpad-left');
@@ -188,6 +188,7 @@ function gameLoop() {
         e.preventDefault(); 
         const touch = e.touches[0]; if (!touch) return;
 
+        // Bounding Box des D-Pads
         const rect = dpadArea.getBoundingClientRect();
         const centerX = rect.left + rect.width / 2;
         const centerY = rect.top + rect.height / 2;
@@ -198,8 +199,9 @@ function gameLoop() {
 
         resetKeys();
 
-        if (dist < 15) return; // Deadzone
+        if (dist < 15) return; // Deadzone in der Mitte
 
+        // Sektoren (45 Grad gedreht)
         if (angle > -135 && angle < -45) {
             state.keys[keyBindings.UP] = true;
             if(armUp) armUp.classList.add('active');
