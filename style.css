@@ -11,7 +11,7 @@ body {
     justify-content: center;
     width: 100vw;
     height: 100vh;
-    height: 100dvh; /* Wichtig für Mobile Browser Adressleiste */
+    height: 100dvh;
     margin: 0;
     overflow: hidden;
     touch-action: none;
@@ -55,6 +55,21 @@ h2 { font-size: 18px; color: #ffffff; margin-top: 15px; margin-bottom: 10px; tex
     margin-bottom: 20px;
     padding: 10px;
     width: 100%;
+    /* Default Transition */
+    transition: 0.2s;
+    border: 2px solid transparent;
+}
+
+/* DESKTOP ACTIVE STATES */
+.selection-grid.active-group {
+    border: 2px dashed #ffffff;
+    background: rgba(50, 50, 0, 0.3);
+    opacity: 1;
+}
+
+.selection-grid.inactive-group {
+    border: 2px solid transparent;
+    opacity: 0.5;
 }
 
 .option-card {
@@ -95,6 +110,10 @@ button.main-btn {
 button.main-btn:hover { background: #ff4444; transform: translate(-2px, -2px); box-shadow: 6px 6px 0 #550000; }
 button.main-btn:active { transform: translate(0, 0); box-shadow: 0 0 0; }
 
+button.main-btn.focused {
+    background: #fff; color: #ff0000; border-color: #ff0000; animation: pulse 1s infinite;
+}
+
 .btn-secondary {
     background: #444; color: white; border: none; padding: 10px 20px;
     font-family: inherit; font-size: 14px; cursor: pointer; margin-top: 15px;
@@ -118,7 +137,7 @@ button.main-btn:active { transform: translate(0, 0); box-shadow: 0 0 0; }
     display: none;
     position: fixed;
     z-index: 1000;
-    pointer-events: none; /* Klicks durchlassen */
+    pointer-events: none;
     left: 0; right: 0; bottom: 10px;
     height: 180px;
     padding: 0 20px;
@@ -126,7 +145,7 @@ button.main-btn:active { transform: translate(0, 0); box-shadow: 0 0 0; }
     align-items: flex-end;
 }
 
-/* --- LINKES D-PAD --- */
+/* LINKES D-PAD */
 #dpad-area {
     pointer-events: auto;
     width: 150px;
@@ -142,32 +161,20 @@ button.main-btn:active { transform: translate(0, 0); box-shadow: 0 0 0; }
 }
 
 .dpad-btn {
-    background: transparent;
-    border: none;
-    color: #888;
-    font-size: 24px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    cursor: pointer;
-    user-select: none;
-    touch-action: none;
-    outline: none;
-    -webkit-tap-highlight-color: transparent;
+    background: transparent; border: none; color: #888; font-size: 24px;
+    display: flex; justify-content: center; align-items: center; cursor: pointer;
+    user-select: none; touch-action: none; outline: none; -webkit-tap-highlight-color: transparent;
 }
 
-#dpad-up    { grid-column: 2; grid-row: 1; }
-#dpad-left  { grid-column: 1; grid-row: 2; }
+#dpad-up { grid-column: 2; grid-row: 1; }
+#dpad-left { grid-column: 1; grid-row: 2; }
 #dpad-right { grid-column: 3; grid-row: 2; }
-#dpad-down  { grid-column: 2; grid-row: 3; }
-.dpad-center{ grid-column: 2; grid-row: 2; background: #333;}
+#dpad-down { grid-column: 2; grid-row: 3; }
+.dpad-center { grid-column: 2; grid-row: 2; background: #333;}
 
-.dpad-btn:active, .dpad-btn.pressed {
-    background: rgba(255, 255, 255, 0.2);
-    color: #fff;
-}
+.dpad-btn:active, .dpad-btn.pressed { background: rgba(255, 255, 255, 0.2); color: #fff; }
 
-/* --- RECHTE ACTIONS BUTTONS --- */
+/* RECHTE ACTIONS */
 #action-area {
     pointer-events: auto;
     position: relative;
@@ -184,10 +191,7 @@ button.main-btn:active { transform: translate(0, 0); box-shadow: 0 0 0; }
     transition: transform 0.1s, box-shadow 0.1s;
 }
 
-.control-btn:active {
-    transform: translate(2px, 4px);
-    box-shadow: 0 0 0 #000;
-}
+.control-btn:active { transform: translate(2px, 4px); box-shadow: 0 0 0 #000; }
 
 .main-action-btn {
     width: 90px; height: 90px;
@@ -213,27 +217,50 @@ button.main-btn:active { transform: translate(0, 0); box-shadow: 0 0 0; }
     #mobile-controls.hidden { display: none !important; }
 }
 
-/* === MOBILE PORTRAIT LAYOUT === */
+/* === MOBILE PORTRAIT LAYOUT (SAFARI FIX & KOMPAKT) === */
 @media (orientation: portrait) {
     body { justify-content: flex-start; }
     #game-container { margin-top: 0 !important; transform-origin: top center !important; }
-    .screen { padding: 40px 0; box-sizing: border-box; }
+    .screen { padding: 20px 0; box-sizing: border-box; }
 
+    /* WIEDERHERGESTELLT: Kompaktes Layout ohne space-evenly */
     .menu-content {
-        display: flex; flex-direction: column; justify-content: flex-start;
-        align-items: center; width: 100%; height: 100%; max-height: 90vh;
-        padding-top: 30px; gap: 15px;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start; /* Nach oben drücken */
+        align-items: center;
+        width: 100%;
+        height: 100%;
+        padding-top: 30px; 
+        gap: 15px; /* Konstanter Abstand */
     }
 
     .menu-section { width: 100%; display: flex; flex-direction: column; align-items: center; margin: 0; }
     h1 { font-size: 32px; margin: 0 0 10px 0; flex-shrink: 0; }
     h2 { font-size: 12px; margin: 0 0 5px 0; color: #aaa; text-transform: uppercase; letter-spacing: 2px; }
 
-    /* Carousel Container */
-    .selection-grid { position: relative; display: block; height: 85px; width: 100%; margin: 0; }
-    .option-card { position: absolute; top: 0; left: 50%; transform: translateX(-50%) scale(0.5); opacity: 0; pointer-events: none; margin: 0; }
+    /* Rahmen entfernen im Mobile Mode */
+    .selection-grid.active-group, .selection-grid.inactive-group {
+        border: none !important;
+        background: transparent !important;
+    }
 
-    /* Carousel Logic */
+    /* KLEINER CONTAINER für Karten */
+    .selection-grid { 
+        position: relative; 
+        display: block; 
+        height: 85px; /* Kompakt */
+        width: 100%; 
+        margin: 0; 
+    }
+
+    .option-card { 
+        position: absolute; top: 0; left: 50%; 
+        transform: translateX(-50%) scale(0.5); 
+        opacity: 0; pointer-events: none; margin: 0; 
+    }
+
+    /* CAROUSEL - KLEINER SKALIERT */
     .option-card[data-pos="center"] { opacity: 1; z-index: 10; transform: translateX(-50%) scale(0.8); border-color: #ff0000; box-shadow: 0 0 10px #ff0000; pointer-events: auto; }
     .option-card[data-pos="left"] { opacity: 0.3; z-index: 5; transform: translateX(-155%) scale(0.5); filter: grayscale(100%); pointer-events: auto; }
     .option-card[data-pos="right"] { opacity: 0.3; z-index: 5; transform: translateX(55%) scale(0.5); filter: grayscale(100%); pointer-events: auto; }
@@ -246,6 +273,6 @@ button.main-btn:active { transform: translate(0, 0); box-shadow: 0 0 0; }
     button.main-btn { width: 70%; padding: 15px; font-size: 18px; }
     .desktop-only { display: none !important; }
     
-    /* Controls Adjustment */
-    #mobile-controls { bottom: 10px; padding: 0 10px; height: 200px; }
+    #mobile-controls { bottom: 10px; padding: 0 10px; height: 180px; }
 }
+@keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
