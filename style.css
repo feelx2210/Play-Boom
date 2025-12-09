@@ -5,19 +5,33 @@ body {
     background-color: #050505;
     color: #ff3333;
     font-family: 'Press Start 2P', cursive;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    width: 100vw; height: 100vh; height: 100dvh;
-    margin: 0; overflow: hidden; touch-action: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    margin: 0;
+    overflow: hidden;
+    touch-action: none;
 }
 
 #game-container {
-    position: relative; width: 720px; height: 720px;
-    box-shadow: 0 0 20px #ff0000; border: 4px solid #550000; background-color: #000;
-    transform-origin: center center; flex-shrink: 0; transition: transform 0.2s; 
+    position: relative;
+    width: 720px; 
+    height: 720px;
+    box-shadow: 0 0 20px #ff0000;
+    border: 4px solid #550000;
+    background-color: #000;
+    transform-origin: center center;
+    flex-shrink: 0; 
+    transition: transform 0.2s; 
 }
+
 canvas { display: block; background: #110000; image-rendering: pixelated; width: 100%; height: 100%; }
 
-/* --- SCREEN / MENU BASIC --- */
+/* --- MENU DESKTOP STANDARD --- */
 .screen {
     position: absolute; top: 0; left: 0; width: 100%; height: 100%;
     background: rgba(0, 0, 0, 0.95); z-index: 20;
@@ -29,29 +43,40 @@ canvas { display: block; background: #110000; image-rendering: pixelated; width:
 h1 { font-size: 40px; color: #ff0000; text-shadow: 4px 4px 0 #550000; margin-bottom: 20px; text-align: center; width: 100%; }
 h2 { font-size: 18px; color: #ffffff; margin-top: 15px; margin-bottom: 10px; text-align: center; width: 100%; }
 
-/* --- SELECTION GRID (Desktop Default) --- */
+/* Desktop Grid */
 .selection-grid {
-    display: flex; flex-direction: row; justify-content: center;
-    gap: 15px; margin-bottom: 20px; padding: 10px; width: 100%;
-    transition: 0.2s; border: 2px solid transparent;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    gap: 15px;
+    margin-bottom: 20px;
+    padding: 10px;
+    width: 100%;
+    transition: 0.2s;
+    border: 2px solid transparent;
 }
+
 .selection-grid.active-group { border: 2px dashed #ffffff; background: rgba(50, 50, 0, 0.3); opacity: 1; }
 .selection-grid.inactive-group { border: 2px solid transparent; opacity: 0.5; }
 
 .option-card {
     border: 2px solid #555; padding: 10px; cursor: pointer; text-align: center;
-    transition: all 0.3s ease; width: 100px; display: flex; flex-direction: column; align-items: center;
-    background: #000; z-index: 1;
+    transition: all 0.3s ease; 
+    width: 100px; 
+    display: flex; flex-direction: column; align-items: center;
+    background: #000;
+    z-index: 1;
 }
+
 .option-card.selected { border-color: #ff0000; background: #220000; box-shadow: 0 0 10px #ff0000; z-index: 10; }
 .option-card:hover { border-color: #fff; transform: scale(1.05); }
 
 .preview-canvas { margin-bottom: 5px; border: 2px solid #333; background: #000; }
 .card-label { font-size: 10px; color: #ddd; margin-top: 5px; text-transform: uppercase; }
 
-.nav-arrow, .mobile-label { display: none; }
+.nav-arrow { display: none; }
+.mobile-label { display: none; }
 
-/* Buttons */
 .menu-footer { width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; margin-top: 20px; }
 button.main-btn {
     background: #ff0000; color: white; border: none; padding: 15px 40px;
@@ -61,73 +86,53 @@ button.main-btn {
 button.main-btn:active { transform: translate(0, 0); box-shadow: 0 0 0; }
 button.main-btn.focused { background: #fff; color: #ff0000; border-color: #ff0000; animation: pulse 1s infinite; }
 .btn-secondary { background: #444; color: white; border: none; padding: 10px 20px; font-family: inherit; font-size: 14px; cursor: pointer; margin-top: 15px; box-shadow: 4px 4px 0 #222; display: block; }
+.btn-secondary:hover { background: #666; box-shadow: 6px 6px 0 #222; }
 
-/* UI Layer */
 #ui-layer { position: absolute; top: 10px; left: 10px; right: 10px; display: flex; pointer-events: none; z-index: 10; }
 #pause-btn { position: absolute; top: 10px; right: 10px; width: 30px; height: 30px; background: rgba(50, 0, 0, 0.8); border: 2px solid #ff0000; color: #fff; font-weight: bold; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 100; pointer-events: auto; }
 .hud-item { background: rgba(0,0,0,0.5); padding: 5px 10px; border-radius: 4px; color: #fff; font-size: 14px; display: flex; gap: 15px; }
+.hidden { display: none !important; }
 
 .controls-list { display: flex; flex-direction: column; gap: 10px; width: 80%; max-width: 400px; }
 .control-row { display: flex; justify-content: space-between; color: #ddd; }
 .key-btn { background: #333; border: 2px solid #555; color: #fff; padding: 8px 16px; width: 180px; text-align: center; }
 
-/* --- MOBILE CONTROLS (Authentic Game Boy Style) --- */
+/* --- MOBILE CONTROLS (GAME BOY STYLE) --- */
 #mobile-controls {
     display: none; position: fixed; z-index: 1000; pointer-events: none;
     left: 0; right: 0; bottom: 10px; height: 180px;
     padding: 0 20px; justify-content: space-between; align-items: flex-end;
 }
+#mobile-controls.hidden { display: none !important; }
 
-#dpad-area {
-    pointer-events: auto; width: 150px; height: 150px; position: relative;
-    display: flex; justify-content: center; align-items: center;
-}
-
-/* Das visuelle Kreuz */
-#dpad-cross {
-    width: 140px; height: 140px; position: relative;
-    /* Damit es wie ein Stück aussieht: */
-    filter: drop-shadow(2px 4px 0 #222);
-}
-
+/* D-Pad */
+#dpad-area { pointer-events: auto; width: 150px; height: 150px; position: relative; display: flex; justify-content: center; align-items: center; }
+#dpad-cross { width: 140px; height: 140px; position: relative; filter: drop-shadow(2px 4px 0 #222); }
 .dpad-key {
-    position: absolute;
-    background: #777; /* Classic Grey */
-    width: 46px; height: 46px;
+    position: absolute; background: #777; width: 46px; height: 46px;
     display: flex; justify-content: center; align-items: center;
-    color: #222; font-size: 20px;
-    cursor: pointer; pointer-events: none; /* Logic is on parent */
+    color: #222; font-size: 20px; cursor: pointer; pointer-events: none;
+    box-shadow: inset 1px 1px 2px rgba(255,255,255,0.3);
 }
-
-/* Positionen & Ränder für den "Kreuz-Look" */
-.dpad-up    { top: 0; left: 47px; border-radius: 5px 5px 0 0; }
-.dpad-down  { bottom: 0; left: 47px; border-radius: 0 0 5px 5px; }
-.dpad-left  { left: 0; top: 47px; border-radius: 5px 0 0 5px; }
+.dpad-up { top: 0; left: 47px; border-radius: 5px 5px 0 0; }
+.dpad-down { bottom: 0; left: 47px; border-radius: 0 0 5px 5px; }
+.dpad-left { left: 0; top: 47px; border-radius: 5px 0 0 5px; }
 .dpad-right { right: 0; top: 47px; border-radius: 0 5px 5px 0; }
-
-/* Mitte ohne Inhalt, verbindet alles */
 .dpad-center {
     position: absolute; width: 46px; height: 46px; top: 47px; left: 47px;
-    background: #777; z-index: 2;
-    /* Deko-Kreis in der Mitte */
-    background-image: radial-gradient(circle, #666 15%, transparent 20%);
+    background: #777; z-index: 2; background-image: radial-gradient(circle, #666 15%, transparent 20%);
 }
+.dpad-key.active { background: #555; color: #fff; box-shadow: inset 2px 2px 5px rgba(0,0,0,0.5); }
 
-/* Active State (Dunkler, "reingedrückt") */
-.dpad-key.active {
-    background: #555; color: #fff;
-    /* Kleiner Offset um Druck zu simulieren */
-}
-
+/* Buttons */
 #action-area { pointer-events: auto; position: relative; width: 160px; height: 160px; }
 .control-btn {
     position: absolute; border-radius: 50%;
     display: flex; justify-content: center; align-items: center;
     user-select: none; backdrop-filter: blur(4px);
-    box-shadow: 2px 4px 0 #220000; transition: transform 0.05s, box-shadow 0.05s;
+    box-shadow: 3px 5px 0 #220000; transition: transform 0.05s, box-shadow 0.05s;
 }
-.control-btn:active { transform: translate(2px, 4px); box-shadow: 0 0 0; }
-
+.control-btn:active { transform: translate(3px, 5px); box-shadow: 0 0 0; }
 .main-action-btn {
     width: 90px; height: 90px; font-size: 40px;
     background: #cc0000; border: none; color: rgba(255,255,255,0.9);
@@ -139,11 +144,11 @@ button.main-btn.focused { background: #fff; color: #ff0000; border-color: #ff000
     bottom: 10px; left: 10px; box-shadow: 2px 4px 0 #111;
 }
 
-/* --- OVERRIDES & MEDIA QUERIES --- */
 @media (pointer: coarse) {
     #mobile-controls { display: flex; }
 }
 
+/* === MOBILE PORTRAIT LAYOUT (SIMPLE STACK FIX) === */
 @media (orientation: portrait) {
     body { justify-content: flex-start; }
     #game-container { margin-top: 0 !important; transform-origin: top center !important; }
@@ -151,38 +156,48 @@ button.main-btn.focused { background: #fff; color: #ff0000; border-color: #ff000
 
     .menu-content {
         display: flex; flex-direction: column; justify-content: flex-start;
-        align-items: center; width: 100%; height: 100%; max-height: 90vh;
-        padding-top: 30px; gap: 15px;
+        align-items: center; width: 100%; height: 100%;
+        padding-top: 20px; gap: 20px;
     }
     .menu-section { width: 100%; display: flex; flex-direction: column; align-items: center; margin: 0; }
-    h1 { font-size: 32px; margin: 0 0 10px 0; flex-shrink: 0; }
-    h2 { font-size: 12px; margin: 0 0 5px 0; color: #aaa; text-transform: uppercase; letter-spacing: 2px; }
+    h1 { font-size: 32px; margin: 0; flex-shrink: 0; }
+    h2 { font-size: 12px; margin: 0 0 10px 0; color: #aaa; text-transform: uppercase; letter-spacing: 2px; }
 
-    /* Mobile: Rahmen weg */
-    .selection-grid.active-group, .selection-grid.inactive-group { border: none !important; background: transparent !important; }
-    
-    /* Layout: Stapel */
-    .selection-grid { position: relative; display: block; height: 85px; width: 100%; margin: 0; border: none !important;}
-    
-    /* Items Position */
-    .option-card { position: absolute; top: 0; left: 50%; transform: translateX(-50%) scale(0.5); opacity: 0; pointer-events: none; margin: 0; }
-    
-    /* Carousel States */
-    .option-card[data-pos="center"] { opacity: 1; z-index: 10; transform: translateX(-50%) scale(0.8); border-color: #ff0000; box-shadow: 0 0 10px #ff0000; pointer-events: auto; }
-    .option-card[data-pos="left"] { opacity: 0.3; z-index: 5; transform: translateX(-155%) scale(0.5); filter: grayscale(100%); pointer-events: auto; }
-    .option-card[data-pos="right"] { opacity: 0.3; z-index: 5; transform: translateX(55%) scale(0.5); filter: grayscale(100%); pointer-events: auto; }
+    /* WICHTIG: Flexbox Stack (Nebeneinander: Pfeil - Karte - Pfeil) */
+    .selection-grid { 
+        position: relative; display: flex; flex-direction: row;
+        justify-content: space-between; align-items: center;
+        width: 80%; height: auto; margin: 0; padding: 0;
+        border: none !important; background: transparent !important;
+    }
 
-    .mobile-label { display: block; color: #ff0000; font-size: 14px; font-weight: bold; text-transform: uppercase; margin-top: 2px; text-shadow: 1px 1px 0 #000; z-index: 20; position: relative; }
+    /* WICHTIG: Nicht ausgewählte Items ausblenden! */
+    .option-card.hidden-option { display: none !important; }
+
+    /* WICHTIG: Ausgewähltes Item sichtbar & skaliert */
+    .option-card.selected {
+        transform: scale(1.1); margin: 0; border-width: 3px; z-index: 10;
+        position: relative; left: auto; top: auto;
+        width: auto; height: auto; flex: 0 0 auto;
+    }
+
+    .preview-canvas {
+        width: auto; height: auto; max-width: 100%; max-height: 200px;
+        object-fit: contain; margin-bottom: 0;
+    }
+
+    .nav-arrow { 
+        display: block; font-size: 30px; color: #ff0000; cursor: pointer; 
+        padding: 10px; user-select: none; animation: pulse 1s infinite; position: static; 
+    }
+
+    .mobile-label { display: block; color: #ff0000; font-size: 14px; font-weight: bold; text-transform: uppercase; margin-top: 10px; text-shadow: 1px 1px 0 #000; }
     .card-label { display: none !important; }
-    .nav-arrow { display: none !important; }
 
-    .menu-footer { width: 100%; margin-top: 10px; }
+    .menu-footer { width: 100%; margin-top: 20px; }
     button.main-btn { width: 70%; padding: 15px; font-size: 18px; }
     .desktop-only { display: none !important; }
     
-    #mobile-controls { bottom: 10px; padding: 0 10px; height: 180px; }
+    #mobile-controls { bottom: 20px; padding: 0 10px; height: 180px; }
 }
 @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
-
-/* --- SYSTEM UTILS (Müssen am Ende stehen!) --- */
-.hidden { display: none !important; }

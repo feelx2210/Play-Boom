@@ -51,46 +51,36 @@ export function initMenu() {
     
     updateMobileLabels();
 
-    // --- FIX: VISUAL FEEDBACK FÜR DESKTOP NAVIGATION ---
-    // Hier steuern wir wieder, welcher Bereich "aktiv" ist
-    if (state.menuState === 0) { // Player Select aktiv
+    if (state.menuState === 0) { 
         charContainer.classList.add('active-group'); charContainer.classList.remove('inactive-group');
         levelContainer.classList.add('inactive-group'); levelContainer.classList.remove('active-group');
         startBtn.classList.remove('focused');
-    } else if (state.menuState === 1) { // Level Select aktiv
+    } else if (state.menuState === 1) { 
         charContainer.classList.add('inactive-group'); charContainer.classList.remove('active-group');
         levelContainer.classList.add('active-group'); levelContainer.classList.remove('inactive-group');
         startBtn.classList.remove('focused');
-    } else if (state.menuState === 2) { // Start Button aktiv
+    } else if (state.menuState === 2) { 
         charContainer.classList.add('inactive-group'); 
         levelContainer.classList.add('inactive-group');
         startBtn.classList.add('focused');
     }
 
-    // --- RENDERING ---
     const renderCard = (container, type, index, data, isSelected) => {
         const div = document.createElement('div');
-        div.className = `option-card ${isSelected ? 'selected' : ''}`;
+        // WICHTIG: Klasse hidden-option hinzufügen, wenn nicht ausgewählt!
+        div.className = `option-card ${isSelected ? 'selected' : 'hidden-option'}`;
         
-        let total = (type === 'char') ? CHARACTERS.length : Object.keys(LEVELS).length;
-        let selectedIdx = (type === 'char') ? state.selectedCharIndex : Object.keys(LEVELS).indexOf(state.selectedLevelKey);
-        
-        let pos = 'hidden';
-        if (index === selectedIdx) pos = 'center';
-        else if (index === (selectedIdx - 1 + total) % total) pos = 'left';
-        else if (index === (selectedIdx + 1) % total) pos = 'right';
-        
-        div.setAttribute('data-pos', pos);
-
         div.onclick = (e) => {
             e.stopPropagation();
-            // Desktop: Klick aktiviert die Gruppe
             if (type === 'char') state.menuState = 0;
             if (type === 'level') state.menuState = 1;
             
-            if (pos === 'left') changeSelection(type, -1);
-            else if (pos === 'right') changeSelection(type, 1);
-            else initMenu(); 
+            if (index !== (type==='char' ? state.selectedCharIndex : Object.keys(LEVELS).indexOf(state.selectedLevelKey))) {
+                // Klick auf ein anderes Item -> auswählen (Desktop)
+                if (type === 'char') state.selectedCharIndex = index;
+                else state.selectedLevelKey = Object.keys(LEVELS)[index];
+                initMenu();
+            }
         };
 
         const pCanvas = document.createElement('canvas'); 
@@ -124,8 +114,27 @@ export function initMenu() {
         renderCard(levelContainer, 'level', idx, LEVELS[key], key === state.selectedLevelKey);
     });
 
+    // Pfeile hinzufügen (für Mobile)
+    addArrows(charContainer, 'char');
+    addArrows(levelContainer, 'level');
+
     addSwipeSupport(charContainer, 'char');
     addSwipeSupport(levelContainer, 'level');
+}
+
+function addArrows(container, type) {
+    const left = document.createElement('div');
+    left.className = 'nav-arrow left';
+    left.innerText = '◀';
+    left.onclick = (e) => { e.stopPropagation(); changeSelection(type, -1); };
+    
+    const right = document.createElement('div');
+    right.className = 'nav-arrow right';
+    right.innerText = '▶';
+    right.onclick = (e) => { e.stopPropagation(); changeSelection(type, 1); };
+    
+    container.insertBefore(left, container.firstChild); // Links davor
+    container.appendChild(right); // Rechts danach
 }
 
 function addSwipeSupport(element, type) {
@@ -134,13 +143,13 @@ function addSwipeSupport(element, type) {
     element.ontouchstart = (e) => { startX = e.changedTouches[0].screenX; };
     element.ontouchend = (e) => {
         endX = e.changedTouches[0].screenX;
-        if (endX < startX - 30) { state.menuState = (type === 'char') ? 0 : 1; changeSelection(type, 1); }
-        else if (endX > startX + 30) { state.menuState = (type === 'char') ? 0 : 1; changeSelection(type, -1); }
+        if (endX < startX - 30) changeSelection(type, 1);
+        else if (endX > startX + 30) changeSelection(type, -1);
     };
 }
 
 export function handleMenuInput(code) {
-    // DESKTOP NAVIGATION
+    const levelKeys = Object.keys(LEVELS);
     if (state.menuState === 0) {
         if (code === 'ArrowLeft') changeSelection('char', -1);
         else if (code === 'ArrowRight') changeSelection('char', 1);
