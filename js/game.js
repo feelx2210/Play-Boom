@@ -26,13 +26,33 @@ function resizeGame() {
     const winW = window.innerWidth;
     const winH = window.innerHeight;
     const fullSize = GRID_W * TILE_SIZE; 
+    // Playable Size ignoriert die äußeren Wände (2 Tiles weniger)
     const playableSize = (GRID_W - 2) * TILE_SIZE; 
 
+    // 1. ScaleFull: Versucht alles inkl. Ränder anzuzeigen (Desktop Standard)
     const scaleFull = Math.min((winW - 20) / fullSize, (winH - 20) / fullSize);
+    
+    // 2. ScaleCrop: Zoomt so, dass nur der spielbare Bereich sichtbar ist (Mobile Zoom)
     const scaleCrop = Math.min(winW / playableSize, winH / playableSize);
 
     let finalScale = scaleFull;
-    if (scaleFull < 1) finalScale = scaleCrop;
+    const isMobile = winW < 800 || ('ontouchstart' in window);
+
+    if (isMobile) {
+        // Auf Mobile erzwingen wir den Crop-Mode für maximalen Zoom
+        finalScale = scaleCrop;
+        // Platzfresser entfernen
+        container.style.border = 'none';
+        container.style.boxShadow = 'none';
+    } else {
+        // Desktop: Nur Croppen, wenn das Fenster wirklich zu klein ist
+        if (scaleFull < 1) finalScale = scaleCrop;
+        // Styles zurücksetzen (falls man am Desktop die Fenstergröße ändert)
+        if (state.currentLevel) {
+             container.style.border = `4px solid ${state.currentLevel.border}`;
+             container.style.boxShadow = `0 0 20px ${state.currentLevel.glow}`;
+        }
+    }
 
     container.style.transform = `scale(${finalScale})`;
 }
@@ -48,17 +68,21 @@ window.startGame = function() {
     
     document.getElementById('mobile-controls').classList.remove('hidden');
 
+    // Level laden & Scaling sofort anwenden
+    const userChar = CHARACTERS[state.selectedCharIndex];
+    state.currentLevel = LEVELS[state.selectedLevelKey];
+
+    // Styles setzen (können durch resizeGame auf Mobile wieder entfernt werden)
+    const container = document.getElementById('game-container');
+    container.style.boxShadow = `0 0 20px ${state.currentLevel.glow}`;
+    container.style.borderColor = state.currentLevel.border;
+    
+    // ZWINGEND: Erst Level setzen, dann Resizen (wegen Border-Logik)
     resizeGame(); 
 
     clearLevelCache();
     input.reset();
 
-    const userChar = CHARACTERS[state.selectedCharIndex];
-    state.currentLevel = LEVELS[state.selectedLevelKey];
-    
-    const container = document.getElementById('game-container');
-    container.style.boxShadow = `0 0 20px ${state.currentLevel.glow}`;
-    container.style.borderColor = state.currentLevel.border;
     document.getElementById('p1-name').innerText = userChar.name.toUpperCase();
 
     state.grid = []; state.items = []; state.bombs = []; state.particles = []; state.players = [];
@@ -122,9 +146,6 @@ window.addEventListener('keydown', e => {
     }
     // Pause / Globales
     if (e.key.toLowerCase() === 'p' || e.code === 'Escape') togglePause();
-    
-    // FIX: Redundanter 'CHANGE' Listener entfernt.
-    // Das macht jetzt der Player Loop via InputHandler.
 });
 
 function update() {

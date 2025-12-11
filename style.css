@@ -33,7 +33,15 @@ body {
     display: flex; flex-direction: column; 
     align-items: center; justify-content: center;
     width: 100vw; height: 100vh; height: 100dvh;
-    margin: 0; overflow: hidden; touch-action: none;
+    margin: 0; overflow: hidden; 
+    
+    /* NEU: Verhindert Auswahl und Zoom-Gesten komplett */
+    touch-action: none; 
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    -webkit-touch-callout: none;
 }
 
 #game-container {
@@ -106,6 +114,7 @@ button.main-btn {
     font-family: inherit; font-size: 20px; cursor: pointer;
     box-shadow: 4px 4px 0 var(--c-shadow); border: 4px solid transparent; 
     display: block; margin: 0;
+    pointer-events: auto; /* Buttons sollen klickbar bleiben */
 }
 button.main-btn:hover { background: #ff4444; transform: translate(-2px, -2px); box-shadow: 6px 6px 0 var(--c-shadow); }
 button.main-btn:active { transform: translate(0, 0); box-shadow: 0 0 0; }
@@ -115,11 +124,16 @@ button.main-btn.focused { background: #fff; color: var(--c-accent); border-color
     background: #444; color: white; border: none; padding: 10px 20px; 
     font-family: inherit; font-size: 14px; cursor: pointer; margin-top: 15px; 
     box-shadow: 4px 4px 0 #222; display: block; 
+    pointer-events: auto;
 }
 .btn-secondary:hover { background: #666; box-shadow: 6px 6px 0 #222; }
 
 /* --- UI OVERLAYS (HUD, PAUSE) --- */
-#ui-layer { position: absolute; top: 10px; left: 10px; right: 10px; display: flex; pointer-events: none; z-index: 10; }
+#ui-layer { 
+    position: absolute; top: 10px; left: 10px; right: 10px; display: flex; 
+    pointer-events: none; z-index: 10;
+    user-select: none; -webkit-user-select: none; /* HUD darf nicht markiert werden */
+}
 #pause-btn { 
     position: absolute; top: 10px; right: 10px; width: 30px; height: 30px; 
     background: rgba(50, 0, 0, 0.8); border: 2px solid var(--c-accent); 
@@ -131,13 +145,14 @@ button.main-btn.focused { background: #fff; color: var(--c-accent); border-color
 
 .controls-list { display: flex; flex-direction: column; gap: 10px; width: 80%; max-width: 400px; }
 .control-row { display: flex; justify-content: space-between; color: var(--c-text-dim); }
-.key-btn { background: #333; border: 2px solid #555; color: #fff; padding: 8px 16px; width: 180px; text-align: center; }
+.key-btn { background: #333; border: 2px solid #555; color: #fff; padding: 8px 16px; width: 180px; text-align: center; pointer-events: auto; }
 
 /* --- MOBILE CONTROLS (GAME BOY STYLE) --- */
 #mobile-controls {
     display: none; position: fixed; z-index: 1000; pointer-events: none;
     left: 0; right: 0; bottom: 10px; height: 180px;
     padding: 0 20px; justify-content: space-between; align-items: flex-end;
+    user-select: none; -webkit-user-select: none;
 }
 #mobile-controls.hidden { display: none !important; }
 
