@@ -19,6 +19,14 @@ export function updateHud(player) {
     if (elFire) elFire.innerText = `🔥 ${player.bombRange}`;
 }
 
+// Mobile Label Update
+function updateMobileLabels() {
+    const charNameEl = document.getElementById('char-name-display');
+    if (charNameEl) charNameEl.innerText = CHARACTERS[state.selectedCharIndex].name;
+    const levelNameEl = document.getElementById('level-name-display');
+    if (levelNameEl) levelNameEl.innerText = LEVELS[state.selectedLevelKey].name;
+}
+
 // Navigation Helper
 function changeSelection(type, dir) {
     if (type === 'char') {
@@ -42,6 +50,8 @@ export function initMenu() {
     charContainer.innerHTML = '';
     levelContainer.innerHTML = '';
     
+    updateMobileLabels();
+
     // VISUAL FEEDBACK FÜR DESKTOP
     if (state.menuState === 0) { 
         charContainer.classList.add('active-group'); charContainer.classList.remove('inactive-group');
@@ -154,6 +164,15 @@ export function quitGame() {
     showMenu();
 }
 
+// NEU: Restart Funktion
+export function restartGame() {
+    // Menü verstecken
+    document.getElementById('pause-menu').classList.add('hidden');
+    state.isPaused = false;
+    // Spiel neu starten (die ausgewählten Charaktere/Level bleiben im state erhalten)
+    if (window.startGame) window.startGame();
+}
+
 export function endGame(msg, winner) {
     if (state.isGameOver) return; 
     state.isGameOver = true; 
@@ -193,7 +212,13 @@ function initControlsMenu() {
 
 function startRemap(action) { remappingAction = action; initControlsMenu(); }
 
-window.showControls = showControls; window.togglePause = togglePause; window.quitGame = quitGame; window.showMenu = showMenu;
+// Global Exports
+window.showControls = showControls;
+window.togglePause = togglePause;
+window.quitGame = quitGame;
+window.showMenu = showMenu;
+window.restartGame = restartGame; // Neu exportiert
+
 window.addEventListener('keydown', e => {
     if (remappingAction) { e.preventDefault(); keyBindings[remappingAction] = e.code; remappingAction = null; initControlsMenu(); }
 });
