@@ -135,13 +135,6 @@ button.main-btn.focused { background: #fff; color: var(--c-accent); border-color
     user-select: none; -webkit-user-select: none; /* HUD darf nicht markiert werden */
 }
 
-/* NEU: Mobile Zoom Adjustments */
-/* Rutscht nach innen, wenn der Rand durch Zoom abgeschnitten ist (55px > 48px Tile Size) */
-#game-container.mobile-zoomed #ui-layer {
-    top: 55px;
-    left: 55px;
-}
-
 #pause-btn { 
     position: absolute; top: 10px; right: 10px; width: 30px; height: 30px; 
     background: rgba(50, 0, 0, 0.8); border: 2px solid var(--c-accent); 
@@ -149,10 +142,33 @@ button.main-btn.focused { background: #fff; color: var(--c-accent); border-color
     cursor: pointer; z-index: 100; pointer-events: auto; 
 }
 
-/* NEU: Pause Button ebenfalls nach innen verschieben */
-#game-container.mobile-zoomed #pause-btn {
-    top: 55px;
-    right: 55px;
+/* NEU: Smarte UI-Positionierung je nach Orientierung */
+
+/* Portrait: Hier wird meist links/rechts abgeschnitten (Zoom auf Breite). 
+   Oben ist die Wand aber sichtbar. 
+   -> Horizontal einrücken (55px), Vertikal oben lassen (10px). */
+@media (orientation: portrait) {
+    #game-container.mobile-zoomed #ui-layer {
+        top: 10px; 
+        left: 55px; 
+    }
+    #game-container.mobile-zoomed #pause-btn {
+        top: 10px;
+        right: 55px;
+    }
+}
+
+/* Landscape: Hier wird meist oben/unten abgeschnitten (Zoom auf Höhe).
+   -> Vertikal nach unten schieben (55px), Horizontal normal lassen (10px). */
+@media (orientation: landscape) {
+    #game-container.mobile-zoomed #ui-layer {
+        top: 55px; 
+        left: 10px; 
+    }
+    #game-container.mobile-zoomed #pause-btn {
+        top: 55px;
+        right: 10px;
+    }
 }
 
 .hud-item { background: rgba(0,0,0,0.5); padding: 5px 10px; border-radius: 4px; color: #fff; font-size: 14px; display: flex; gap: 15px; }
