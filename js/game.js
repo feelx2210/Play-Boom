@@ -23,8 +23,21 @@ function resizeGame() {
     const container = document.getElementById('game-container');
     if (!container) return;
 
-    const winW = window.innerWidth;
-    const winH = window.innerHeight;
+    // NEU: Zieldimension bestimmen (Webseite vs Fullscreen)
+    let targetWidth = window.innerWidth;
+    let targetHeight = window.innerHeight;
+    const stage = document.getElementById('game-stage');
+    
+    // Wenn Stage existiert und wir NICHT im Fullscreen sind:
+    if (stage && !document.fullscreenElement) {
+        targetWidth = stage.clientWidth;
+        targetHeight = stage.clientHeight;
+    }
+
+    const winW = targetWidth;
+    const winH = targetHeight;
+    
+    // --- SKALIERUNG BERECHNEN ---
     const fullSize = GRID_W * TILE_SIZE; 
     // Playable Size ignoriert die äußeren Wände (2 Tiles weniger)
     const playableSize = (GRID_W - 2) * TILE_SIZE; 
@@ -36,7 +49,7 @@ function resizeGame() {
     const scaleCrop = Math.min(winW / playableSize, winH / playableSize);
 
     let finalScale = scaleFull;
-    const isMobile = winW < 800 || ('ontouchstart' in window);
+    const isMobile = window.innerWidth < 800 || ('ontouchstart' in window);
 
     if (isMobile) {
         // Auf Mobile erzwingen wir den Crop-Mode für maximalen Zoom
@@ -76,9 +89,9 @@ window.startGame = function() {
 
     // --- UMAMI TRACKING START ---
     if (window.umami) {
-        umami.track('Game Started'); // Zählt Spielstarts
-        umami.track('Level Selected', { level: state.currentLevel.id }); // Welches Level?
-        umami.track('Character Selected', { character: userChar.name }); // Welcher Spieler?
+        umami.track('Game Started');
+        umami.track('Level Selected', { level: state.currentLevel.id });
+        umami.track('Character Selected', { character: userChar.name });
     }
     // --- UMAMI TRACKING END ---
 
