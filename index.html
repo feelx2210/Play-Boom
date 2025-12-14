@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -24,31 +24,32 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
             padding: 0;
-            overflow-x: hidden; /* Kein horizontales Scrollen */
+            overflow-x: hidden;
         }
 
         /* --- HEADER --- */
         header {
             text-align: center;
-            padding: 20px 0;
+            padding: 30px 0;
             background: linear-gradient(to bottom, #000 0%, transparent 100%);
         }
         
         h1.site-title {
-            font-size: 2.5rem;
+            font-size: 3rem;
             margin: 0;
             font-weight: 900;
             letter-spacing: 2px;
             color: #fff;
-            text-shadow: 0 0 10px var(--accent);
+            text-shadow: 0 0 15px var(--accent);
+            text-transform: uppercase;
         }
 
-        /* --- GAME STAGE (Der Bereich für das Spiel) --- */
+        /* --- GAME STAGE --- */
         #game-stage {
             position: relative;
             width: 100%;
-            max-width: 1000px; /* Maximale Breite des Spiels auf der Seite */
-            height: 600px;     /* Feste Höhe für die Desktop-Ansicht */
+            max-width: 1200px; /* Etwas breiter für besseren Look */
+            height: 850px;     /* HIER GEÄNDERT: Viel höher (war 600px) */
             margin: 0 auto;
             background: #000;
             border: 1px solid #333;
@@ -68,8 +69,8 @@
         #landing-overlay {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.7); /* Abgedunkelt */
-            backdrop-filter: blur(2px);
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(4px);
             z-index: 9000;
             display: flex;
             flex-direction: column;
@@ -84,76 +85,96 @@
         }
 
         .welcome-text {
-            font-size: 2rem;
+            font-size: 2.5rem;
             font-weight: bold;
-            margin-bottom: 20px;
+            margin-bottom: 30px;
             text-transform: uppercase;
+            letter-spacing: 1px;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.5);
         }
 
         #play-btn-big {
             background: var(--accent);
             color: white;
             border: none;
-            padding: 15px 50px;
-            font-size: 1.5rem;
-            font-weight: bold;
+            padding: 20px 60px;
+            font-size: 1.8rem;
+            font-weight: 800;
             cursor: pointer;
-            border-radius: 5px;
-            box-shadow: 0 0 20px var(--accent);
+            border-radius: 8px;
+            box-shadow: 0 0 25px var(--accent);
             transition: transform 0.2s, box-shadow 0.2s;
             text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
         #play-btn-big:hover {
             transform: scale(1.05);
-            box-shadow: 0 0 40px var(--accent);
+            box-shadow: 0 0 50px var(--accent);
         }
 
         /* --- FULLSCREEN BUTTON --- */
         #fs-btn {
             position: absolute;
-            bottom: 15px;
-            right: 15px;
-            background: rgba(255,255,255,0.2);
+            bottom: 20px;
+            right: 20px;
+            background: rgba(255,255,255,0.15);
             color: white;
-            border: 1px solid rgba(255,255,255,0.4);
-            padding: 8px 12px;
+            border: 1px solid rgba(255,255,255,0.3);
+            padding: 10px 15px;
             cursor: pointer;
-            z-index: 8000; /* Unter dem Overlay, aber über dem Spiel */
-            font-size: 0.8rem;
+            z-index: 8000;
+            font-size: 0.9rem;
             border-radius: 4px;
             transition: background 0.2s;
+            backdrop-filter: blur(2px);
         }
-        #fs-btn:hover { background: rgba(255,255,255,0.4); }
+        #fs-btn:hover { background: rgba(255,255,255,0.3); }
 
         /* --- INFO CONTENT SECTIONS --- */
         .content-section {
-            max-width: 1000px;
-            margin: 40px auto;
-            padding: 20px;
+            max-width: 1200px;
+            margin: 60px auto;
+            padding: 0 20px;
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 20px;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
         }
 
         .info-card {
             background: var(--bg-panel);
-            padding: 25px;
-            border-radius: 8px;
-            border-top: 2px solid var(--accent);
+            padding: 30px;
+            border-radius: 12px;
+            border-top: 3px solid var(--accent);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
         }
 
-        .info-card h3 { margin-top: 0; color: var(--accent); }
-        .info-card p { color: var(--text-dim); line-height: 1.6; }
+        .info-card h3 { 
+            margin-top: 0; 
+            color: var(--accent); 
+            font-size: 1.4rem;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .info-card p { 
+            color: var(--text-dim); 
+            line-height: 1.7; 
+            font-size: 1rem;
+            margin: 0;
+        }
 
         /* --- FOOTER --- */
         footer {
             text-align: center;
-            padding: 40px;
-            color: #555;
+            padding: 50px;
+            color: #666;
             font-size: 0.9rem;
             border-top: 1px solid #222;
-            margin-top: 50px;
+            margin-top: 80px;
+            background: #050505;
         }
 
         /* --- MOBILE OPTIMIERUNG --- */
@@ -162,12 +183,15 @@
                 height: 80vh; /* Auf Handy fast Fullscreen */
                 width: 100%;
                 border: none;
+                border-radius: 0;
             }
-            h1.site-title { font-size: 1.8rem; }
-            .welcome-text { font-size: 1.2rem; text-align: center; }
+            h1.site-title { font-size: 2rem; }
+            .welcome-text { font-size: 1.5rem; text-align: center; padding: 0 20px;}
+            #play-btn-big { padding: 15px 40px; font-size: 1.4rem; }
+            .content-section { margin: 40px auto; }
         }
         
-        /* Wenn im Fullscreen Modus, Stage anpassen */
+        /* Fullscreen Override */
         #game-stage:fullscreen {
             width: 100vw;
             height: 100vh;
@@ -185,7 +209,7 @@
     <div id="game-stage">
         
         <div id="landing-overlay">
-            <div class="welcome-text">Ready to rumble?</div>
+            <div class="welcome-text">READY TO RUMBLE?</div>
             <button id="play-btn-big" onclick="enterGameMode()">PLAY BOOM</button>
         </div>
 
@@ -266,58 +290,47 @@
     </div> <section class="content-section">
         <div class="info-card">
             <h3>🎮 CLASSIC ACTION</h3>
-            <p>Erlebe das klassische Bomberman-Feeling im Browser. Platziere Bomben, sammle Power-Ups und eliminiere deine Gegner in diesem schnellen Multiplayer-Spiel.</p>
+            <p>Experience the true 90s Bomberman feeling right in your browser. Place bombs, collect power-ups, and eliminate your opponents in this fast-paced multiplayer mayhem.</p>
         </div>
         <div class="info-card">
             <h3>🔥 CRAZY LEVELS</h3>
-            <p>Kämpfe im Dschungel, überlebe auf rutschigem Eis oder stelle dich dem tödlichen Feuer in der Hölle. Jedes Level hat eigene Mechaniken.</p>
+            <p>Battle in the lush Jungle, survive on slippery Ice, or face the deadly rising flames in Hell. Each level comes with unique mechanics and challenges.</p>
         </div>
         <div class="info-card">
             <h3>🕹️ PLAY WITH FRIENDS</h3>
-            <p>Setz dich mit Freunden an eine Tastatur oder spiele gegen die KI. Optimiert für Desktop und Mobile mit Touch-Steuerung.</p>
+            <p>Gather your friends around one keyboard for local multiplayer chaos or challenge the AI bots. Optimized for Desktop and Mobile with touch controls.</p>
         </div>
     </section>
 
     <footer>
-        &copy; 2025 PlayBoom.xyz | Built with AI & ❤️ | <a href="#" style="color: #555;">Impressum</a>
+        &copy; 2025 PlayBoom.xyz | Built with AI & ❤️ | <a href="#" style="color: #555; text-decoration: none;">Privacy & Imprint</a>
     </footer>
 
     <script src="js/debug.js"></script>
     <script type="module" src="js/game.js"></script>
 
     <script>
-        // Funktion zum "Betreten" des Spiels
         function enterGameMode() {
             const overlay = document.getElementById('landing-overlay');
             overlay.classList.add('hidden');
-            
-            // Tracking Event senden
             if(window.umami) umami.track('Play Button Clicked');
-
-            // Optional: Fokus auf das Spiel setzen, damit Tastatur sofort geht
             window.dispatchEvent(new Event('resize')); 
         }
 
-        // Fullscreen Toggle Funktion
         function toggleWebsiteFullscreen() {
             const stage = document.getElementById('game-stage');
-            
             if (!document.fullscreenElement) {
                 if(stage.requestFullscreen) stage.requestFullscreen();
-                else if(stage.webkitRequestFullscreen) stage.webkitRequestFullscreen(); // Safari
+                else if(stage.webkitRequestFullscreen) stage.webkitRequestFullscreen();
             } else {
                 if(document.exitFullscreen) document.exitFullscreen();
             }
         }
 
-        // Hack für korrektes Scaling beim Laden
         window.addEventListener('load', () => {
-            setTimeout(() => {
-                window.dispatchEvent(new Event('resize'));
-            }, 100);
+            setTimeout(() => { window.dispatchEvent(new Event('resize')); }, 100);
         });
 
-        // Wenn Fullscreen sich ändert, Resize triggern
         document.addEventListener('fullscreenchange', () => {
              setTimeout(() => window.dispatchEvent(new Event('resize')), 100);
         });
