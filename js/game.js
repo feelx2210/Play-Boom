@@ -18,17 +18,18 @@ let gameLoopId;
 // Zentrale Input-Instanz
 const input = new InputHandler();
 
-// --- RESPONSIVE SCALING (SMART CROP) ---
+// --- RESPONSIVE SCALING (HERO MODE) ---
 function resizeGame() {
     const container = document.getElementById('game-container');
     if (!container) return;
 
-    // NEU: Zieldimension bestimmen (Webseite vs Fullscreen)
+    // 1. Größe des Containers (Stage oder Screen) ermitteln
     let targetWidth = window.innerWidth;
     let targetHeight = window.innerHeight;
+    
     const stage = document.getElementById('game-stage');
     
-    // Wenn Stage existiert und wir NICHT im Fullscreen sind:
+    // Wenn Stage existiert und NICHT Fullscreen, nimm Stage-Größe
     if (stage && !document.fullscreenElement) {
         targetWidth = stage.clientWidth;
         targetHeight = stage.clientHeight;
@@ -37,30 +38,27 @@ function resizeGame() {
     const winW = targetWidth;
     const winH = targetHeight;
     
-    // --- SKALIERUNG BERECHNEN ---
     const fullSize = GRID_W * TILE_SIZE; 
-    // Playable Size ignoriert die äußeren Wände (2 Tiles weniger)
     const playableSize = (GRID_W - 2) * TILE_SIZE; 
 
-    // 1. ScaleFull: Versucht alles inkl. Ränder anzuzeigen (Desktop Standard)
-    const scaleFull = Math.min((winW - 20) / fullSize, (winH - 20) / fullSize);
+    // Berechnung der Skalierung
+    // Wir wollen, dass das Spiel so groß wie möglich ist, aber ins Fenster passt (contain)
+    const scaleFull = Math.min((winW - 10) / fullSize, (winH - 10) / fullSize);
     
-    // 2. ScaleCrop: Zoomt so, dass nur der spielbare Bereich sichtbar ist (Mobile Zoom)
+    // Crop-Mode für Mobile (Zoom auf spielbaren Bereich)
     const scaleCrop = Math.min(winW / playableSize, winH / playableSize);
 
     let finalScale = scaleFull;
     const isMobile = window.innerWidth < 800 || ('ontouchstart' in window);
 
     if (isMobile) {
-        // Auf Mobile erzwingen wir den Crop-Mode für maximalen Zoom
         finalScale = scaleCrop;
-        // Platzfresser entfernen und Klasse für CSS-Positionierung setzen
         container.style.border = 'none';
         container.style.boxShadow = 'none';
         container.classList.add('mobile-zoomed');
     } else {
-        // Desktop: Nur Croppen, wenn das Fenster wirklich zu klein ist
-        if (scaleFull < 1) finalScale = scaleCrop;
+        if (scaleFull < 1) finalScale = scaleCrop; // Nur zoomen wenn Screen sehr klein
+        
         // Styles zurücksetzen
         if (state.currentLevel) {
              container.style.border = `4px solid ${state.currentLevel.border}`;
@@ -100,7 +98,6 @@ window.startGame = function() {
     container.style.boxShadow = `0 0 20px ${state.currentLevel.glow}`;
     container.style.borderColor = state.currentLevel.border;
     
-    // ZWINGEND: Erst Level setzen, dann Resizen (damit Border-Logik greift)
     resizeGame(); 
 
     clearLevelCache();
@@ -160,14 +157,12 @@ function distributeItems() {
     });
 }
 
-// Global Listener (für Menü & Pause & Debug)
+// Global Listener
 window.addEventListener('keydown', e => {
-    // Menü Steuerung
     if (!document.getElementById('main-menu').classList.contains('hidden')) { 
         handleMenuInput(e.code); 
         return; 
     }
-    // Pause / Globales
     if (e.key.toLowerCase() === 'p' || e.code === 'Escape') togglePause();
 });
 
