@@ -10,33 +10,34 @@
     <script defer src="https://cloud.umami.is/script.js" data-website-id="0fb8f7bf-1091-455c-97aa-4ef76bc400a9"></script>
 
     <style>
+        /* Grundfarben */
         :root {
             --bg-dark: #050505;
             --bg-panel: #111;
-            --accent: #ff0055; /* Boom Red */
+            --accent: #ff0055;
             --text-main: #eee;
             --text-dim: #999;
         }
 
         body {
             background-color: var(--bg-dark);
-            color: var(--text-main);
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
             padding: 0;
-            overflow-x: hidden;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+            overflow-x: hidden; /* Nur horizontal scrollen verhindern */
+            /* WICHTIG: Kein display:flex im Body, damit Scrollen normal funktioniert */
         }
 
-        /* --- 1. HEADLINE (Ganz oben) --- */
+        /* Hilfsklasse für Webseiten-Schrift (NICHT für das Spiel) */
+        .web-font {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: var(--text-main);
+        }
+
+        /* --- HEADER --- */
         header {
-            width: 100%;
             text-align: center;
-            padding: 40px 0 30px 0;
+            padding: 40px 0 20px 0;
             background: var(--bg-dark);
-            z-index: 10;
         }
         
         h1.site-title {
@@ -49,25 +50,31 @@
             text-transform: uppercase;
         }
 
-        /* --- 2. GAME BOX (Mitte, RIESIG) --- */
+        /* --- GAME CONTAINER (Der "Kasten") --- */
+        #game-stage-wrapper {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            margin-bottom: 100px; /* Viel Abstand nach unten zum Scrollen */
+        }
+
         #game-stage {
             position: relative;
             width: 95%;         
             max-width: 1600px;
             
-            /* HIER DIE ÄNDERUNG: Massive Höhe erzwingen */
-            height: 85vh;       /* 85% der Bildschirmhöhe */
-            min-height: 850px;  /* Mindestens 850px hoch (ca. 3x so hoch wie vorher) */
+            /* MASSIVE HÖHE ERZWINGEN */
+            height: 85vh;       /* 85% des Viewports */
+            min-height: 850px;  /* Mindestens 850px (Desktop) */
             
             background: #000;
             border: 2px solid #333;
             box-shadow: 0 0 60px rgba(0, 0, 0, 0.8);
             border-radius: 8px;
             overflow: hidden;
-            margin-bottom: 80px; /* Viel Platz nach unten zum Scrollen */
         }
 
-        /* Das eigentliche Spiel-Element (wird per JS zentriert) */
+        /* Das Spiel-Canvas und UI */
         #game-container {
             position: absolute;
             top: 50%; left: 50%;
@@ -82,7 +89,7 @@
             backdrop-filter: blur(5px);
             z-index: 9000;
             display: flex;
-            justify-content: center; /* Nur noch zentrieren */
+            justify-content: center;
             align-items: center;
             transition: opacity 0.5s ease;
         }
@@ -92,54 +99,59 @@
             pointer-events: none;
         }
 
-        /* KEIN TEXT MEHR HIER DRIN */
-
+        /* Großer Play Button */
         #play-btn-big {
             background: var(--accent);
             color: white;
             border: none;
-            padding: 30px 80px;  /* Button auch etwas fetter */
+            padding: 30px 90px;
             font-size: 2rem;
             font-weight: 900;
             cursor: pointer;
-            border-radius: 5px;
+            border-radius: 4px;
             box-shadow: 0 0 40px var(--accent);
             transition: transform 0.2s, box-shadow 0.2s;
             text-transform: uppercase;
             letter-spacing: 2px;
+            /* Button Font explizit setzen */
+            font-family: 'Segoe UI', sans-serif; 
         }
 
         #play-btn-big:hover {
             transform: scale(1.05);
-            box-shadow: 0 0 70px var(--accent);
+            box-shadow: 0 0 80px var(--accent);
         }
 
-        /* FULLSCREEN BUTTON */
+        /* Fullscreen Button */
         #fs-btn {
             position: absolute;
-            bottom: 25px;
-            right: 25px;
-            background: rgba(255,255,255,0.1);
-            color: #ccc;
-            border: 1px solid rgba(255,255,255,0.2);
-            padding: 10px 20px;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(255,255,255,0.15);
+            color: #fff;
+            border: 1px solid rgba(255,255,255,0.3);
+            padding: 8px 16px;
             cursor: pointer;
             z-index: 8000;
-            font-size: 0.9rem;
+            font-family: sans-serif;
+            font-size: 0.8rem;
             border-radius: 4px;
-            transition: background 0.2s;
         }
-        #fs-btn:hover { background: rgba(255,255,255,0.2); color: #fff; }
 
-        /* --- 3. TEXT BLÖCKE (Unten, muss gescrollt werden) --- */
+        /* --- TEXT CONTENT (Unten) --- */
+        .content-wrapper {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            padding-bottom: 50px;
+        }
+
         .content-section {
             width: 90%;
             max-width: 1200px;
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
             gap: 40px;
-            margin-bottom: 100px;
-            padding-bottom: 50px;
         }
 
         .info-card {
@@ -154,7 +166,6 @@
             margin-top: 0; 
             color: var(--accent); 
             font-size: 1.4rem;
-            margin-bottom: 15px;
             text-transform: uppercase;
         }
         
@@ -165,146 +176,147 @@
             margin: 0;
         }
 
-        /* --- FOOTER --- */
         footer {
-            width: 100%;
             text-align: center;
-            padding: 40px;
+            padding: 50px;
             color: #555;
             font-size: 0.9rem;
             border-top: 1px solid #222;
             background: #020202;
         }
 
-        /* --- MOBILE OPTIMIERUNG --- */
+        /* --- MOBILE --- */
         @media (max-width: 768px) {
-            h1.site-title { font-size: 1.8rem; padding: 0 10px; }
+            h1.site-title { font-size: 1.8rem; }
             #game-stage {
-                width: 100%;
-                height: 70vh; /* Auf Mobile etwas kleiner, damit man noch sieht, dass es weitergeht */
+                height: 70vh; /* Auf Handy etwas kleiner */
                 min-height: 500px;
+                width: 100%;
                 border: none;
                 border-radius: 0;
             }
-            #play-btn-big { padding: 20px 50px; font-size: 1.5rem; }
-            .content-section { width: 95%; }
+            #play-btn-big { padding: 20px 40px; font-size: 1.5rem; }
         }
-        
-        /* Fullscreen Logik */
+
+        /* Fullscreen Mode */
         #game-stage:fullscreen {
             width: 100vw;
             height: 100vh;
-            min-height: 0; /* Reset min-height für Fullscreen */
+            min-height: 0;
+            margin: 0;
             border: none;
             border-radius: 0;
-            margin: 0;
         }
     </style>
 </head>
 <body>
 
     <header>
-        <h1 class="site-title">WELCOME TO BOOM - BOMBERMAN</h1>
+        <h1 class="site-title web-font">WELCOME TO BOOM - BOMBERMAN</h1>
     </header>
 
-    <div id="game-stage">
-        
-        <div id="landing-overlay">
-            <button id="play-btn-big" onclick="enterGameMode()">PLAY BOOM</button>
-        </div>
-
-        <button id="fs-btn" onclick="toggleWebsiteFullscreen()">⛶ Fullscreen</button>
-
-        <div id="game-container">
-            <canvas id="gameCanvas"></canvas>
+    <div id="game-stage-wrapper">
+        <div id="game-stage">
             
-            <div id="pause-btn" class="hidden" onclick="togglePause()">X</div>
-            <div id="ui-layer" class="hidden">
-                <div class="hud-item">
-                    <span id="p1-name">P1</span> 
-                    <span id="bomb-type" style="font-size: 1.2em;">⚫</span>
-                    <span id="hud-bombs" style="color: #0088ff;">💣 1</span>
-                    <span id="hud-fire" style="color: #ffaa00;">🔥 1</span>
-                </div>
+            <div id="landing-overlay">
+                <button id="play-btn-big" onclick="enterGameMode()">PLAY BOOM</button>
             </div>
-        </div>
 
-        <div id="main-menu" class="screen">
-            <div class="menu-content">
-                <h1 class="game-title">BOOM</h1>
+            <button id="fs-btn" onclick="toggleWebsiteFullscreen()">⛶ Fullscreen</button>
+
+            <div id="game-container">
+                <canvas id="gameCanvas"></canvas>
                 
-                <div class="menu-section">
-                    <h2>SELECT PLAYER</h2>
-                    <div class="selection-grid" id="char-select"></div>
-                    <div class="mobile-label" id="char-name-display">RAMBO</div>
-                </div>
-
-                <div class="menu-section">
-                    <h2>SELECT LEVEL</h2>
-                    <div class="selection-grid" id="level-select"></div>
-                    <div class="mobile-label" id="level-name-display">HELL</div>
-                </div>
-
-                <div class="menu-footer">
-                    <button id="start-game-btn" class="main-btn" onclick="startGame()">START GAME</button>
-                    <button class="btn-secondary desktop-only" onclick="showControls()">CONTROLS</button>
+                <div id="pause-btn" class="hidden" onclick="togglePause()">X</div>
+                <div id="ui-layer" class="hidden">
+                    <div class="hud-item">
+                        <span id="p1-name">P1</span> 
+                        <span id="bomb-type" style="font-size: 1.2em;">⚫</span>
+                        <span id="hud-bombs" style="color: #0088ff;">💣 1</span>
+                        <span id="hud-fire" style="color: #ffaa00;">🔥 1</span>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <div id="controls-menu" class="screen hidden">
-            <h1>CONTROLS</h1>
-            <div class="controls-list" id="controls-list"></div>
-            <button class="btn-secondary" onclick="showMenu()">BACK</button>
-        </div>
+            <div id="main-menu" class="screen">
+                <div class="menu-content">
+                    <h1 class="game-title">BOOM</h1>
+                    
+                    <div class="menu-section">
+                        <h2>SELECT PLAYER</h2>
+                        <div class="selection-grid" id="char-select"></div>
+                        <div class="mobile-label" id="char-name-display">RAMBO</div>
+                    </div>
 
-        <div id="pause-menu" class="screen hidden">
-            <h1>GAME PAUSED</h1>
-            <button class="main-btn" onclick="togglePause()">RESUME</button>
-            <button class="btn-secondary" onclick="restartGame()">RESTART</button>
-            <button class="btn-secondary" onclick="quitGame()">QUIT GAME</button>
-        </div>
+                    <div class="menu-section">
+                        <h2>SELECT LEVEL</h2>
+                        <div class="selection-grid" id="level-select"></div>
+                        <div class="mobile-label" id="level-name-display">HELL</div>
+                    </div>
 
-        <div id="game-over" class="screen hidden">
-            <h1 id="go-title">GAME OVER</h1>
-            <p id="go-message" style="margin-bottom: 20px; font-size: 18px;">Winner!</p>
-            <button class="main-btn" onclick="showMenu()">MAIN MENU</button>
-        </div>
-
-        <div id="mobile-controls" class="hidden">
-            <div id="dpad-area">
-                <div id="dpad-cross">
-                    <div class="dpad-key dpad-up" data-key="UP"></div>
-                    <div class="dpad-key dpad-right" data-key="RIGHT"></div>
-                    <div class="dpad-key dpad-down" data-key="DOWN"></div>
-                    <div class="dpad-key dpad-left" data-key="LEFT"></div>
-                    <div class="dpad-center"></div>
+                    <div class="menu-footer">
+                        <button id="start-game-btn" class="main-btn" onclick="startGame()">START GAME</button>
+                        <button class="btn-secondary desktop-only" onclick="showControls()">CONTROLS</button>
+                    </div>
                 </div>
             </div>
-            <div id="action-area">
-                <div id="btn-change" class="control-btn subtle-btn"></div>
-                <div id="btn-bomb" class="control-btn main-action-btn"></div>
-            </div>
-        </div>
 
+            <div id="controls-menu" class="screen hidden">
+                <h1>CONTROLS</h1>
+                <div class="controls-list" id="controls-list"></div>
+                <button class="btn-secondary" onclick="showMenu()">BACK</button>
+            </div>
+
+            <div id="pause-menu" class="screen hidden">
+                <h1>GAME PAUSED</h1>
+                <button class="main-btn" onclick="togglePause()">RESUME</button>
+                <button class="btn-secondary" onclick="restartGame()">RESTART</button>
+                <button class="btn-secondary" onclick="quitGame()">QUIT GAME</button>
+            </div>
+
+            <div id="game-over" class="screen hidden">
+                <h1 id="go-title">GAME OVER</h1>
+                <p id="go-message" style="margin-bottom: 20px; font-size: 18px;">Winner!</p>
+                <button class="main-btn" onclick="showMenu()">MAIN MENU</button>
+            </div>
+
+            <div id="mobile-controls" class="hidden">
+                <div id="dpad-area">
+                    <div id="dpad-cross">
+                        <div class="dpad-key dpad-up" data-key="UP"></div>
+                        <div class="dpad-key dpad-right" data-key="RIGHT"></div>
+                        <div class="dpad-key dpad-down" data-key="DOWN"></div>
+                        <div class="dpad-key dpad-left" data-key="LEFT"></div>
+                        <div class="dpad-center"></div>
+                    </div>
+                </div>
+                <div id="action-area">
+                    <div id="btn-change" class="control-btn subtle-btn"></div>
+                    <div id="btn-bomb" class="control-btn main-action-btn"></div>
+                </div>
+            </div>
+
+        </div>
     </div>
 
-    <section class="content-section">
-        <div class="info-card">
-            <h3>🎮 CLASSIC ACTION</h3>
-            <p>Experience the true 90s Bomberman feeling right in your browser. Place bombs, collect power-ups, and eliminate your opponents in this fast-paced multiplayer mayhem.</p>
-        </div>
-        <div class="info-card">
-            <h3>🔥 CRAZY LEVELS</h3>
-            <p>Battle in the lush Jungle, survive on slippery Ice, or face the deadly rising flames in Hell. Each level comes with unique mechanics and challenges.</p>
-        </div>
-        <div class="info-card">
-            <h3>🕹️ PLAY WITH FRIENDS</h3>
-            <p>Gather your friends around one keyboard for local multiplayer chaos or challenge the AI bots. Optimized for Desktop and Mobile with touch controls.</p>
-        </div>
-    </section>
+    <div class="content-wrapper">
+        <section class="content-section web-font">
+            <div class="info-card">
+                <h3>🎮 CLASSIC ACTION</h3>
+                <p>Experience the true 90s Bomberman feeling right in your browser. Place bombs, collect power-ups, and eliminate your opponents in this fast-paced multiplayer mayhem.</p>
+            </div>
+            <div class="info-card">
+                <h3>🔥 CRAZY LEVELS</h3>
+                <p>Battle in the lush Jungle, survive on slippery Ice, or face the deadly rising flames in Hell. Each level comes with unique mechanics and challenges.</p>
+            </div>
+            <div class="info-card">
+                <h3>🕹️ PLAY WITH FRIENDS</h3>
+                <p>Gather your friends around one keyboard for local multiplayer chaos or challenge the AI bots. Optimized for Desktop and Mobile with touch controls.</p>
+            </div>
+        </section>
+    </div>
 
-    <footer>
+    <footer class="web-font">
         &copy; 2025 PlayBoom.xyz | Built with AI & ❤️ | <a href="#" style="color: #666; text-decoration: none;">Privacy & Imprint</a>
     </footer>
 
@@ -316,7 +328,6 @@
             const overlay = document.getElementById('landing-overlay');
             overlay.classList.add('hidden');
             if(window.umami) umami.track('Play Button Clicked');
-            
             setTimeout(() => window.dispatchEvent(new Event('resize')), 50);
         }
 
