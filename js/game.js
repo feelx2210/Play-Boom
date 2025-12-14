@@ -74,6 +74,14 @@ window.startGame = function() {
     const userChar = CHARACTERS[state.selectedCharIndex];
     state.currentLevel = LEVELS[state.selectedLevelKey];
 
+    // --- UMAMI TRACKING START ---
+    if (window.umami) {
+        umami.track('Game Started'); // Zählt Spielstarts
+        umami.track('Level Selected', { level: state.currentLevel.id }); // Welches Level?
+        umami.track('Character Selected', { character: userChar.name }); // Welcher Spieler?
+    }
+    // --- UMAMI TRACKING END ---
+
     // Styles initial setzen
     const container = document.getElementById('game-container');
     container.style.boxShadow = `0 0 20px ${state.currentLevel.glow}`;
