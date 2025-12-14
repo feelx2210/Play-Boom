@@ -27,14 +27,14 @@
             overflow-x: hidden;
             display: flex;
             flex-direction: column;
-            align-items: center; /* Alles zentrieren */
+            align-items: center;
         }
 
         /* --- 1. HEADLINE (Ganz oben) --- */
         header {
             width: 100%;
             text-align: center;
-            padding: 40px 0 20px 0; /* Platz nach oben und unten */
+            padding: 40px 0 30px 0;
             background: var(--bg-dark);
             z-index: 10;
         }
@@ -49,18 +49,22 @@
             text-transform: uppercase;
         }
 
-        /* --- 2. GAME BOX (Mitte, Groß) --- */
+        /* --- 2. GAME BOX (Mitte, RIESIG) --- */
         #game-stage {
             position: relative;
-            width: 90%;         /* Breite Box */
-            max-width: 1400px;  /* Nicht zu breit auf riesigen Screens */
-            height: 70vh;       /* Nimmt 70% der Bildschirmhöhe ein */
+            width: 95%;         
+            max-width: 1600px;
+            
+            /* HIER DIE ÄNDERUNG: Massive Höhe erzwingen */
+            height: 85vh;       /* 85% der Bildschirmhöhe */
+            min-height: 850px;  /* Mindestens 850px hoch (ca. 3x so hoch wie vorher) */
+            
             background: #000;
             border: 2px solid #333;
             box-shadow: 0 0 60px rgba(0, 0, 0, 0.8);
             border-radius: 8px;
             overflow: hidden;
-            margin-bottom: 60px; /* Abstand zu den Textblöcken unten */
+            margin-bottom: 80px; /* Viel Platz nach unten zum Scrollen */
         }
 
         /* Das eigentliche Spiel-Element (wird per JS zentriert) */
@@ -74,12 +78,11 @@
         #landing-overlay {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.85); /* Dunkel */
+            background: rgba(0, 0, 0, 0.85); 
             backdrop-filter: blur(5px);
             z-index: 9000;
             display: flex;
-            flex-direction: column;
-            justify-content: center;
+            justify-content: center; /* Nur noch zentrieren */
             align-items: center;
             transition: opacity 0.5s ease;
         }
@@ -89,59 +92,54 @@
             pointer-events: none;
         }
 
-        .welcome-text {
-            font-size: 2.5rem;
-            font-weight: bold;
-            margin-bottom: 30px;
-            text-transform: uppercase;
-            color: #fff;
-            text-shadow: 0 2px 10px rgba(0,0,0,0.5);
-        }
+        /* KEIN TEXT MEHR HIER DRIN */
 
         #play-btn-big {
             background: var(--accent);
             color: white;
             border: none;
-            padding: 20px 60px;
-            font-size: 1.8rem;
-            font-weight: 800;
+            padding: 30px 80px;  /* Button auch etwas fetter */
+            font-size: 2rem;
+            font-weight: 900;
             cursor: pointer;
             border-radius: 5px;
-            box-shadow: 0 0 30px var(--accent);
+            box-shadow: 0 0 40px var(--accent);
             transition: transform 0.2s, box-shadow 0.2s;
             text-transform: uppercase;
+            letter-spacing: 2px;
         }
 
         #play-btn-big:hover {
             transform: scale(1.05);
-            box-shadow: 0 0 50px var(--accent);
+            box-shadow: 0 0 70px var(--accent);
         }
 
         /* FULLSCREEN BUTTON */
         #fs-btn {
             position: absolute;
-            bottom: 20px;
-            right: 20px;
+            bottom: 25px;
+            right: 25px;
             background: rgba(255,255,255,0.1);
             color: #ccc;
             border: 1px solid rgba(255,255,255,0.2);
-            padding: 8px 15px;
+            padding: 10px 20px;
             cursor: pointer;
             z-index: 8000;
-            font-size: 0.8rem;
+            font-size: 0.9rem;
             border-radius: 4px;
             transition: background 0.2s;
         }
         #fs-btn:hover { background: rgba(255,255,255,0.2); color: #fff; }
 
-        /* --- 3. TEXT BLÖCKE (Unten) --- */
+        /* --- 3. TEXT BLÖCKE (Unten, muss gescrollt werden) --- */
         .content-section {
             width: 90%;
             max-width: 1200px;
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 30px;
-            margin-bottom: 80px;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 40px;
+            margin-bottom: 100px;
+            padding-bottom: 50px;
         }
 
         .info-card {
@@ -183,10 +181,12 @@
             h1.site-title { font-size: 1.8rem; padding: 0 10px; }
             #game-stage {
                 width: 100%;
-                height: 60vh; /* Etwas kleiner auf Handy */
+                height: 70vh; /* Auf Mobile etwas kleiner, damit man noch sieht, dass es weitergeht */
+                min-height: 500px;
                 border: none;
                 border-radius: 0;
             }
+            #play-btn-big { padding: 20px 50px; font-size: 1.5rem; }
             .content-section { width: 95%; }
         }
         
@@ -194,6 +194,7 @@
         #game-stage:fullscreen {
             width: 100vw;
             height: 100vh;
+            min-height: 0; /* Reset min-height für Fullscreen */
             border: none;
             border-radius: 0;
             margin: 0;
@@ -209,7 +210,6 @@
     <div id="game-stage">
         
         <div id="landing-overlay">
-            <div class="welcome-text">READY TO RUMBLE?</div>
             <button id="play-btn-big" onclick="enterGameMode()">PLAY BOOM</button>
         </div>
 
@@ -317,7 +317,6 @@
             overlay.classList.add('hidden');
             if(window.umami) umami.track('Play Button Clicked');
             
-            // Resize triggern, damit Canvas sich perfekt einpasst
             setTimeout(() => window.dispatchEvent(new Event('resize')), 50);
         }
 
