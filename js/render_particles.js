@@ -2,7 +2,6 @@ import { TILE_SIZE } from './constants.js';
 import { state } from './state.js';
 import { drawFlame, drawBeam } from './effects.js';
 
-// ... (drawOilFire Funktion bleibt unverändert)
 function drawOilFire(ctx, x, y) {
     const t = Date.now();
     ctx.save();
@@ -54,7 +53,6 @@ function drawOilFire(ctx, x, y) {
     ctx.restore();
 }
 
-// ... (drawFreezing Funktion bleibt unverändert)
 function drawFreezing(ctx, x, y, life, maxLife) {
     const cx = x; const cy = y;
     const progress = 1 - (life / maxLife); 
@@ -73,47 +71,58 @@ function drawFreezing(ctx, x, y, life, maxLife) {
     ctx.restore();
 }
 
-// ÄNDERUNG: Neue, pixelige Napalm-Flamme
+// NEU: Schönerer Napalm-Effekt (Lavateppich statt Pixel-Flamme)
 function drawNapalmFlame(ctx, x, y) {
-    const t = Date.now();
+    const cx = x + TILE_SIZE / 2;
+    const cy = y + TILE_SIZE / 2;
+    const time = Date.now();
+
     ctx.save();
-    // Zentrieren horizontal, vertikal an den Boden der Kachel setzen
-    ctx.translate(x + TILE_SIZE/2, y + TILE_SIZE - 8);
 
-    const pixelSize = 4; // Größe eines "Retro-Pixels"
+    // 1. Pulsieren der Lava-Masse
+    const pulse = Math.sin(time / 200 + x + y) * 3; 
+    const radiusX = (TILE_SIZE * 0.45) + pulse;
+    const radiusY = (TILE_SIZE * 0.42) + pulse * 0.7; 
 
-    // Definition der Flammen-Schichten von unten nach oben (Breite in unseren "Pixeln")
-    // Eine Pyramidenform: unten breit (6), oben spitz (1)
-    const layers = [6, 5, 4, 3, 2, 1];
+    // 2. Radialer Farbverlauf (Chemische Hitze)
+    const gradient = ctx.createRadialGradient(cx, cy, TILE_SIZE * 0.1, cx, cy, radiusX);
+    gradient.addColorStop(0, '#ffffaa');   // Weiß-Gelb Zentrum
+    gradient.addColorStop(0.4, '#ffcc00'); // Gelb-Orange
+    gradient.addColorStop(0.8, '#ff4400'); // Glut
+    gradient.addColorStop(1, '#990000');   // Dunkler Rand
 
-    layers.forEach((width, i) => {
-        // Jede Schicht wackelt leicht unterschiedlich basierend auf Zeit und Höhe (i)
-        // Je höher (i), desto stärker das Wackeln.
-        const wave = Math.sin(t / 150 + i * 0.6) * (i * 0.7);
-        const currentY = -i * pixelSize; // Y-Position nach oben wandern lassen
+    ctx.fillStyle = gradient;
 
-        // Äußerer Rand (Rot/Dunkelorange flackernd)
-        ctx.fillStyle = (Math.floor(t/100) + i) % 2 === 0 ? '#ff4400' : '#cc2200';
-        ctx.fillRect((-width/2 * pixelSize) + wave, currentY, width * pixelSize, pixelSize);
+    // 3. Form zeichnen
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, radiusX, radiusY, 0, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // 4. Blubber-Effekt
+    const seed = (x * 17 + y * 23); 
+    const numBubbles = 3 + (seed % 3);
 
-        // Innerer Kern (Gelb/Hellorange flackernd) - nur wenn die Schicht breit genug ist
-        if (width > 2) {
-            const coreWidth = width - 2;
-            ctx.fillStyle = (Math.floor(t/100) + i) % 2 === 0 ? '#ffff00' : '#ffcc00';
-            // Kern zeichnen
-            ctx.fillRect((-coreWidth/2 * pixelSize) + wave, currentY, coreWidth * pixelSize, pixelSize);
-        }
-    });
+    for (let i = 0; i < numBubbles; i++) {
+        const bubbleTimeOffset = time / 300 + i * 100 + seed;
+        const bx = cx + Math.cos(bubbleTimeOffset) * (radiusX * 0.6);
+        const by = cy + Math.sin(bubbleTimeOffset * 1.3) * (radiusY * 0.6);
+        
+        let bubbleSize = (Math.sin(time / 100 + i * 50 + seed) + 1) * 4;
+        if (bubbleSize < 0) bubbleSize = 0;
 
-    // Gelegentlich ein einzelner "Funken"-Pixel oben drauf, der schnell aufsteigt
-    if (Math.random() < 0.3) {
-            ctx.fillStyle = '#ffff00';
-            // Funke wackelt mit der Spitze mit
-            const sparkWave = Math.sin(t / 150 + layers.length * 0.6) * (layers.length * 0.7);
-            // Funke ist 1-2 Pixel über der Spitze
-            const sparkHeight = (layers.length + (Math.floor(t/50)%2)) * pixelSize;
-            ctx.fillRect(sparkWave - pixelSize/2, -sparkHeight, pixelSize, pixelSize);
+        ctx.fillStyle = 'rgba(255, 255, 200, 0.8)';
+        ctx.beginPath();
+        ctx.arc(bx, by, bubbleSize, 0, Math.PI * 2);
+        ctx.fill();
     }
+    
+    // Leichter Glüh-Rand
+    ctx.shadowColor = '#ff0000';
+    ctx.shadowBlur = 10;
+    ctx.strokeStyle = 'rgba(255, 60, 0, 0.5)';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.ellipse(cx, cy, radiusX, radiusY, 0, 0, Math.PI*2); ctx.stroke();
+    ctx.shadowBlur = 0;
 
     ctx.restore();
 }
@@ -142,7 +151,6 @@ export function drawAllParticles(ctx) {
                 const pulse = Math.sin(Date.now() / 30) * 2;
                 const baseSize = 16; 
                 
-                // Standard-Farben für die Explosion selbst
                 const isOil = p.isOilFire;
                 const inner = isOil ? '#ff5500' : '#ffff44'; 
                 const outer = isOil ? '#000000' : '#ff6600'; 
@@ -167,9 +175,9 @@ export function drawAllParticles(ctx) {
             else if (p.isOilFire) {
                 drawOilFire(ctx, cx, cy);
             } 
-            // 4. Nachbrennen (Napalm) - Ruft die neue pixelige Funktion auf
+            // 4. Nachbrennen (Napalm) - HIER IST DIE ÄNDERUNG
             else if (p.isNapalm) {
-                drawNapalmFlame(ctx, px, py); // Übergibt px, py (oben links der Kachel) für korrekte Positionierung
+                drawNapalmFlame(ctx, px, py);
             }
             // 5. Ausglühen (Normale Explosion)
             else {

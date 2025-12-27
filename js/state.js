@@ -1,30 +1,34 @@
-import { LEVELS } from './constants.js';
-
 export const state = {
-    // Spielfeld-Daten
+    currentLevel: null,
     grid: [],
     items: [],
+    players: [],
     bombs: [],
     particles: [],
-    players: [],
     
-    // Level-Status
-    currentLevel: LEVELS.hell,
-    selectedCharIndex: 0,
-    selectedLevelKey: 'hell',
-    
-    // Game-Flow Status
-    menuState: 0,       // 0: Char, 1: Level, 2: Start
-    isGameOver: false,
+    // Game Flow
     isPaused: false,
+    isGameOver: false,
+    gameStartTime: 0,
     
-    // Level-Spezifische Timer
+    // Menu
+    menuState: 0, 
+    selectedCharIndex: 0,
+    selectedLevelKey: 'stone',
+    difficulty: 1, 
+    
+    // Mechanics
     hellFireTimer: 0,
     hellFirePhase: 'IDLE', 
     hellFireActive: false,
     
     iceTimer: 0,
-    iceSpawnCountdown: 0
+    iceSpawnCountdown: 1200,
+
+    // NEU: Sudden Death Flag
+    isSuddenDeath: false,
     
-    // HINWEIS: 'keys' wurde entfernt -> Nutzt jetzt InputHandler
+    statistics: JSON.parse(localStorage.getItem('boom_stats')) || {
+        gamesPlayed: 0, wins: 0, draws: 0, losses: 0, winsByChar: {}
+    }
 };
